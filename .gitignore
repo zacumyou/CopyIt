@@ -1,0 +1,13 @@
+**/bin/
+**/obj/
+**/Library/
+**/node_modules/
+local/
+research/
+package/
+installation-backups/
+publishing/
+*.zip
+*.user
+*.suo
+*.log

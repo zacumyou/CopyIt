@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><Configurations>Debug;Release</Configurations><Version>0.5.6</Version><AssemblyName>CopyIt</AssemblyName><RootNamespace>CopyIt</RootNamespace><AssemblyTitle>Copy It</AssemblyTitle></PropertyGroup>
+  <Import Project="$(CSII_TOOLPATH)\Mod.props" />
+  <Import Project="$(CSII_TOOLPATH)\Mod.targets" />
+  <PropertyGroup>
+    <UserDataPath>$(CSII_USERDATAPATH)</UserDataPath><UnityModProjectPath>$(CSII_UNITYMODPROJECTPATH)</UnityModProjectPath>
+    <ModPostProcessorPath>$(CSII_MODPOSTPROCESSORPATH)</ModPostProcessorPath><MSCORLIBPath>$(CSII_MSCORLIBPATH)</MSCORLIBPath>
+    <LocalModsPath>$(MSBuildProjectDirectory)\..\local</LocalModsPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="UnityEngine.AudioModule"><Private>false</Private></Reference>
+    <Reference Include="Game;Colossal.Core;Colossal.Logging;Colossal.IO.AssetDatabase;Colossal.Collections;Colossal.Mathematics;Colossal.Localization;Colossal.UI;Colossal.UI.Binding;UnityEngine.CoreModule;Unity.InputSystem;Unity.Collections;Unity.Entities;Unity.Mathematics"><Private>false</Private></Reference>
+    <Reference Update="System;System.Core;System.Data"><Private>false</Private></Reference>
+  </ItemGroup>
+  <Target Name="DeployWIP" AfterTargets="AfterBuild" Condition="'$(NeedBuild)'"><ItemGroup><FilesToDeploy Include="$(OutDir)\*.dll;$(OutDir)\*.pdb" /></ItemGroup><MakeDir Directories="$(DeployDir)" /><Copy SourceFiles="@(FilesToDeploy)" DestinationFolder="$(DeployDir)" /></Target>
+</Project>
+
+
+
+
+
+
