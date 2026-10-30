@@ -1,4 +1,4 @@
-# Sources and acknowledgements
+﻿# Sources and acknowledgements
 
 Copy It is an independent Cities: Skylines II code mod inspired by the selection workflow of Move It.
 

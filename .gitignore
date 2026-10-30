@@ -11,3 +11,11 @@ publishing/
 *.user
 *.suo
 *.log
+
+# Local build and validation output
+**/Library/
+local/
+*.log
+**/node_modules/
+**/bin/
+**/obj/

@@ -1,5 +1,5 @@
 // KO: 선택→클립보드→임시 미리보기→확정 배치의 상태를 관리합니다. 원본 엔티티는 직접 복제/수정하지 않습니다.
-// EN: Owns selection, clipboard, temporary preview and commit states. Source entities are not cloned or edited directly.
+// EN: Owns selection, clipboard and preview states. Explicit deletion uses the native bulldozer pipeline.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -43,6 +43,7 @@ namespace CopyIt
         private readonly List<Entity> pending = new List<Entity>();
         private EntityQuery temps, netTemps, allTemps, sound;
         private bool shortcutRequested;
+        private bool clearPreviousToolPreview;
         private float3 anchor, previewAnchor;
         private float minY;
         private bool previewExists, pressed, dirty, appliedLastFrame;
@@ -69,14 +70,14 @@ namespace CopyIt
             Eyedropper=!Eyedropper;
             if(Eyedropper&&sampleCandidates.Count==0)sampleCandidates.UnionWith(selected);
             ResetRegion();pressed=false;hover=Entity.Null;
-            Status=Eyedropper?"찾을 에셋들을 차례로 클릭 · 선택 방식 버튼으로 완료":"선택 모드";
+            Status=Eyedropper?L10n.Message("CopyIt.Text.DC7E9F0280"):L10n.Message("CopyIt.Text.04673003E3");
         }
 
         internal int Filters {get; private set;} = 255;
         internal int Count => selected.Count;
         internal int ClipboardCount => clipboard.Count;
         internal bool Active => m_ToolSystem.activeTool == this;
-        internal string Status {get; private set;} = "선택할 오브젝트를 클릭하세요.";
+        internal string Status {get; private set;} = L10n.Message("CopyIt.Text.F6EA647C2C");
         internal bool CanPlace {get; private set;}
         internal bool Dragging => pressed && Box;
         internal Vector2 DragStart => pressPosition;
@@ -87,6 +88,7 @@ namespace CopyIt
         protected override void OnCreate()
         {
             base.OnCreate();
+            RestoreToolSettings();
             temps = GetEntityQuery(ComponentType.ReadOnly<Temp>(),ComponentType.ReadOnly<ObjectTransform>(),ComponentType.ReadOnly<PrefabRef>(),ComponentType.Exclude<Deleted>(),ComponentType.Exclude<Owner>());
             netTemps=GetEntityQuery(ComponentType.ReadOnly<Temp>(),ComponentType.ReadOnly<Game.Net.Edge>(),ComponentType.ReadOnly<Game.Net.Curve>(),ComponentType.ReadOnly<PrefabRef>(),ComponentType.Exclude<Deleted>(),ComponentType.Exclude<Owner>());
             surfaceTemps=GetEntityQuery(ComponentType.ReadOnly<Temp>(),ComponentType.ReadOnly<Game.Areas.Area>(),ComponentType.ReadOnly<Game.Areas.Node>(),ComponentType.ReadOnly<PrefabRef>(),ComponentType.Exclude<Deleted>(),ComponentType.Exclude<Owner>());
@@ -96,11 +98,13 @@ namespace CopyIt
         internal void Activate()
         {
             if (!Mod.Ready) return;
+            bool previousUnderground=m_ToolSystem.activeTool!=null&&m_ToolSystem.activeTool.requireUnderground;
             m_ToolSystem.activeTool = this;
+            SetUnderground(previousUnderground);
         }
         internal void Deactivate()
         {
-            if (Active) m_ToolSystem.activeTool = World.GetOrCreateSystemManaged<DefaultToolSystem>();
+            if (Active) {var next=World.GetOrCreateSystemManaged<DefaultToolSystem>();next.SetUnderground(undergroundView);m_ToolSystem.activeTool=next;}
         }
         public override void InitializeRaycast()
         {
@@ -108,6 +112,7 @@ namespace CopyIt
             m_ToolRaycastSystem.typeMask = (Copying || (SelectionMode==2&&!Eyedropper)) ? TypeMask.Terrain : TypeMask.StaticObjects | TypeMask.Terrain | TypeMask.Net | TypeMask.Lanes | TypeMask.Areas;
             m_ToolRaycastSystem.areaTypeMask=(Eyedropper||(Filters&128)!=0)?Game.Areas.AreaTypeMask.Surfaces:Game.Areas.AreaTypeMask.None;
             m_ToolRaycastSystem.collisionMask = CollisionMask.OnGround | CollisionMask.Overground | CollisionMask.ExclusiveGround | (IncludeUnderground?CollisionMask.Underground:0);
+            if(undergroundView&&!Copying&&!(SelectionMode==2&&!Eyedropper))m_ToolRaycastSystem.collisionMask=CollisionMask.Underground;
             m_ToolRaycastSystem.raycastFlags &= ~RaycastFlags.IgnoreSecondary;
             m_ToolRaycastSystem.raycastFlags |= RaycastFlags.Decals | RaycastFlags.Markers;
             m_ToolRaycastSystem.netLayerMask=Game.Net.Layer.TrainTrack|Game.Net.Layer.TramTrack|Game.Net.Layer.SubwayTrack|Game.Net.Layer.Road|Game.Net.Layer.Fence|Game.Net.Layer.Pathway|Game.Net.Layer.LaneEditor;
@@ -116,6 +121,7 @@ namespace CopyIt
         {
             applyActionOverride=Mod.Options.GetAction("Select");
             base.OnStartRunning();
+            clearPreviousToolPreview=true;
             applyAction.shouldBeEnabled = true; cancelAction.shouldBeEnabled = true;
 
             Diagnostics.Event("tool.open");
@@ -131,9 +137,11 @@ namespace CopyIt
         // EN: Tool shutdown may be outside the ECB window; synchronously clear owned definitions only.
         internal void ClearState()
         {
-            bool ownsPreview=Copying || previewExists;
+            bool ownsPreview=Copying || previewExists || Deleting;
+            deleteStage=0;deleteTargets.Clear();
             ClearNetworkDefinitions();ClearSurfaceDefinitions();
             if (pending.Count > 0) VerifyPlacement();
+            ResetGizmo();
             samples.Clear();sampleCandidates.Clear();filterClicks.Reset();Eyedropper=false;ResetRegion(); ResetRotation(); shortcutRequested=false;
             pressed=false; Copying=false; CanPlace=false; previewExists=false; appliedLastFrame=false;placeRequested=false;
             clipboard.Clear(); selected.Clear(); hover=Entity.Null; SyncHighlights();
@@ -156,14 +164,16 @@ namespace CopyIt
             if(command!="buildings"&&command!="props"&&command!="trees"&&command!="roads"&&command!="paths"&&command!="netlanes"&&command!="decals"&&command!="surfaces")filterClicks.Reset();
             if(command=="toggle") { if(Active) Deactivate(); else Activate(); return; }
             if(!Active) return;
+            if(Deleting && command!="compact")return;
             switch(command)
             {
                 case "underground.include": SetUndergroundSelection(true);break;
                 case "underground.exclude": SetUndergroundSelection(false);break;
                 case "compact": Compact=!Compact; break;
                 case "copy": BeginCopy(); break;
+                case "delete": RequestDeletion();break;
                 case "cancel": CancelCopy(); break;
-                case "clear": if(!Copying) {sampleCandidates.Clear();Eyedropper=false;ResetRegion();selected.Clear(); SyncHighlights(); Status="선택 해제";} break;
+                case "clear": if(!Copying) {sampleCandidates.Clear();Eyedropper=false;ResetRegion();selected.Clear(); SyncHighlights(); Status=L10n.Message("CopyIt.Text.9AC3A0BEBB");} break;
                 case "height.snap": GroundSnap=true;Absolute=false;dirty=true;placeRequested=false;CanPlace=false;Diagnostics.Event("height.mode","terrain.per-object");break;
                 case "height.terrain": GroundSnap=false;Absolute=false;dirty=true;placeRequested=false;CanPlace=false;Diagnostics.Event("height.mode","terrain.group.minimum");break;
                 case "height": GroundSnap=false;Absolute=!Absolute; dirty=true; placeRequested=false;CanPlace=false; Diagnostics.Event("height.mode",Absolute?"absolute":"terrain.group.minimum"); break;
@@ -176,12 +186,39 @@ namespace CopyIt
                 case "trees": ToggleFilter(4); break;
                 case "paths": ToggleFilter(64); break;
                 case "eyedropper": ToggleEyedropper();break;
-                case "assetFilter.clear": samples.Clear();sampleCandidates.Clear();Eyedropper=false;ResetRegion();pressed=false;Status="에셋 필터 해제";Diagnostics.Event("selection.assetFilter.clear");break;
+                case "assetFilter.clear": samples.Clear();sampleCandidates.Clear();Eyedropper=false;ResetRegion();pressed=false;Status=L10n.Message("CopyIt.Text.22D93553CC");Diagnostics.Event("selection.assetFilter.clear");break;
                 case "roads": ToggleFilter(8); break;
                 case "netlanes": ToggleFilter(16); break;
                 case "surfaces": ToggleFilter(128);break;
                 case "decals": ToggleFilter(32); break;
             }
+            SaveToolSettings();
+        }
+        private void RestoreToolSettings()
+        {
+            var options=Mod.Options;
+            if(options==null)return;
+            SelectionMode=options.LastSelectionMode;Filters=options.LastFilters;
+            IncludeUnderground=options.LastIncludeUnderground;
+            GroundSnap=options.LastHeightMode==2;Absolute=options.LastHeightMode==1;
+            Compact=options.LastCompact;
+            Status=SelectionMode==0?L10n.Message("CopyIt.Text.F6EA647C2C"):L10n.Message("CopyIt.Text.25331ED127");
+        }
+        // KO: 실제 설정 변경만 즉시 저장하여 정상 종료 여부와 관계없이 복원합니다.
+        // EN: Save actual preference changes immediately, without relying on clean shutdown.
+        private void SaveToolSettings()
+        {
+            var options=Mod.Options;
+            if(options==null)return;
+            int heightMode=GroundSnap?2:Absolute?1:0;
+            if(options.LastSelectionMode==SelectionMode&&options.LastFilters==Filters&&
+                options.LastIncludeUnderground==IncludeUnderground&&options.LastHeightMode==heightMode&&
+                options.LastCompact==Compact)return;
+            options.LastSelectionMode=SelectionMode;options.LastFilters=Filters;
+            options.LastIncludeUnderground=IncludeUnderground;options.LastHeightMode=heightMode;
+            options.LastCompact=Compact;
+            try { options.ApplyAndSave(); }
+            catch(Exception e) { Diagnostics.Failure("settings.save.failed",e); }
         }
         private void ToggleFilter(int bit)
         {
@@ -200,6 +237,7 @@ namespace CopyIt
         private bool Live(Entity e) => e!=Entity.Null && EntityManager.Exists(e) && !EntityManager.HasComponent<Deleted>(e) && !EntityManager.HasComponent<Temp>(e);
         private bool Eligible(Entity e,bool filter=true)
         {
+            if(filter&&!MatchesView(e))return false;
             if(filter&&!IncludeUnderground&&IsUndergroundNetwork(e))return false;
             if(filter&&AssetFilterActive&&(!Live(e)||!MatchesSample(e)))return false;
             if(Live(e)&&!EntityManager.HasComponent<Owner>(e)&&EntityManager.HasComponent<ObjectTransform>(e)&&EntityManager.HasComponent<PrefabRef>(e)&&IsDecal(e))return !filter||(Filters&32)!=0;
@@ -224,19 +262,19 @@ namespace CopyIt
         private void BeginCopy()
         {
             Eyedropper=false;
-            if(Copying || pressed || regionCommitting || polygonWorld.Count>0 || selected.Count==0) return;
-            if(selected.Count(IsNetwork)>64){Status="도로·넷레인은 한 번에 최대 64구간까지 복사할 수 있습니다.";Diagnostics.Event("copy.network.limit",selected.Count.ToString());return;}
+            if(Deleting || Copying || pressed || regionCommitting || polygonWorld.Count>0 || selected.Count==0) return;
+            if(selected.Count(IsNetwork)>64){Status=L10n.Message("CopyIt.Text.08065C0267");Diagnostics.Event("copy.network.limit",selected.Count.ToString());return;}
             int surfaceVertices=0;
             foreach(var e in selected)if(IsSurface(e))surfaceVertices+=EntityManager.GetBuffer<Game.Areas.Node>(e,true).Length;
-            if(surfaceVertices>8192){Status="표면 꼭짓점은 한 번에 총 8192개까지 복사할 수 있습니다.";Diagnostics.Event("copy.surface.limit",surfaceVertices.ToString());return;}
+            if(surfaceVertices>8192){Status=L10n.Message("CopyIt.Text.EC86ED9694");Diagnostics.Event("copy.surface.limit",surfaceVertices.ToString());return;}
             clipboard.Clear();lastNetworkIssue="";
             foreach(var e in selected.OrderBy(e=>e.Index))
             {
-                if(!Eligible(e,false)) { Status="원본이 변경되었습니다. 다시 선택하세요."; clipboard.Clear(); Diagnostics.Event("copy.rejected",e.ToString()); return; }
+                if(!Eligible(e,false)) { Status=L10n.Message("CopyIt.Text.9529A9C534"); clipboard.Clear(); Diagnostics.Event("copy.rejected",e.ToString()); return; }
                 var item=new Item {Source=e, Prefab=EntityManager.GetComponentData<PrefabRef>(e).m_Prefab,
                     Transform=SnapshotTransform(e), Seed=RandomSeed.Next()};
                 if(!math.all(math.isfinite(item.Transform.m_Position)) || !math.all(math.isfinite(item.Transform.m_Rotation.value)))
-                {clipboard.Clear();Status="잘못된 위치/회전을 가진 원본은 복사할 수 없습니다.";Diagnostics.Event("copy.rejected",e+" non-finite transform");return;}
+                {clipboard.Clear();Status=L10n.Message("CopyIt.Text.2EF99D6A15");Diagnostics.Event("copy.rejected",e+" non-finite transform");return;}
                 if(EntityManager.HasComponent<Tree>(e)) item.Tree=EntityManager.GetComponentData<Tree>(e);
                 if(EntityManager.HasComponent<PseudoRandomSeed>(e)) item.AppearanceSeed=EntityManager.GetComponentData<PseudoRandomSeed>(e);
                 if(EntityManager.HasBuffer<CustomMeshColor>(e) && EntityManager.IsComponentEnabled<CustomMeshColor>(e))
@@ -253,8 +291,9 @@ namespace CopyIt
             foreach(var item in clipboard)if(item.Surface!=null)foreach(var node in item.Surface){lo=math.min(lo,node.m_Position);hi=math.max(hi,node.m_Position);}
             ResetRotation(); ResetRegion();
             minY=lo.y; anchor=(lo+hi)*0.5f; anchor.y=minY;
+            GizmoBoundsMin=lo-anchor;GizmoBoundsMax=hi-anchor;
             Copying=true; dirty=true; previewExists=false; placeRequested=false;hover=Entity.Null; SyncHighlights();
-            Status="커서로 위치 지정 · 클릭 배치 · 우클릭 드래그 회전 · Esc 취소";
+            Status=L10n.Message("CopyIt.Text.6A4538F5AA");
             Diagnostics.Event("copy.begin",$"count={clipboard.Count} anchor={anchor} absolute={Absolute} groundSnap={GroundSnap}");
             foreach(var item in clipboard) Diagnostics.Event("copy.snapshot",$"source={item.Source} prefab={item.Prefab} name={PrefabName(item.Container?.m_Prefab??item.Prefab)} position={item.Transform.m_Position} rotation={item.Transform.m_Rotation}");
         }
@@ -266,11 +305,11 @@ namespace CopyIt
         private void CancelCopy()
         {
             if(!Copying) {Deactivate();return;}
-            ResetRotation();
+            ResetGizmo(); ResetRotation();
             Copying=false; clipboard.Clear(); pressed=false; previewExists=false; CanPlace=false;placeRequested=false;
             ClearNetworkDefinitions();ClearSurfaceDefinitions();
             applyMode=ApplyMode.Clear; DestroyDefinitions(GetDefinitionQuery(),m_ToolOutputBarrier,default).Complete();
-            Diagnostics.Event("copy.cancel"); Status="선택 모드";
+            Diagnostics.Event("copy.cancel"); Status=L10n.Message("CopyIt.Text.04673003E3");
         }
         protected override JobHandle OnUpdate(JobHandle deps)
         {
@@ -278,18 +317,34 @@ namespace CopyIt
             try { UpdateTool(); DrawSelectionBoundaries(); }
             catch(Exception error)
             {
-                Diagnostics.Failure("tool.exception",error); ClearState(); Status="오류로 복사를 중단했습니다. 이벤트 로그를 확인하세요.";
+                Diagnostics.Failure("tool.exception",error); ClearState(); Status=L10n.Message("CopyIt.Text.038C6B5369");
             }
             return default;
         }
         private void UpdateTool()
         {
+            requireUnderground=undergroundView;
             applyMode=ApplyMode.None;
+            // KO: 이전 도구의 호버용 Temp.Select를 첫 ToolUpdate에서 정리합니다.
+            // EN: Clear the previous tool's hover temps in the first valid ToolUpdate phase.
+            // Keep Clear for this whole frame; selection/preview work starts next frame.
+            if(clearPreviousToolPreview)
+            {
+                DestroyDefinitions(GetDefinitionQuery(),m_ToolOutputBarrier,default).Complete();
+                applyMode=ApplyMode.Clear;
+                clearPreviousToolPreview=false;
+                Diagnostics.Event("tool.previousPreview.clear");
+                return;
+            }
+            if(UpdateDeletion())return;
             if(appliedLastFrame)
             {
-                bool verified=VerifyPlacement();appliedLastFrame=false;previewExists=false;dirty=true;
-                if(!verified) {CancelCopy();Status="생성 수 또는 높이가 예상과 다릅니다. 반복 복사를 중단했습니다. 로그를 확인하세요.";return;}
+                var gizmoCreated=GizmoHeld?pending.ToArray():null;
+                bool verified=VerifyPlacement();if(verified&&GizmoHeld){GizmoCommits++;GizmoLastCreated=gizmoCreated;}appliedLastFrame=false;previewExists=false;dirty=true;
+                if(!verified) {CancelCopy();Status=L10n.Message("CopyIt.Text.FC9DA44BE9");return;}
             }
+            BeginGizmoIfRequested();
+            if(GizmoHeld){UpdateGizmoPreview();return;}
             if(HandleCancel())return;
             if(!m_HasFocus) {ResetRegion();ResetRotationDrag();pressed=false; CanPlace=false;placeRequested=false;return;}
             if(shortcutRequested) {shortcutRequested=false;BeginCopy();}
@@ -297,6 +352,7 @@ namespace CopyIt
             bool hit=GetRaycastResult(out Entity entity,out RaycastHit ray);
             if(Copying)
             {
+                RefreshSlopedItState();
                 HandleRotation();
                 if(!hit) { if(previewExists) ClearPreview(); return; }
                 var point=ray.m_HitPosition;
@@ -316,7 +372,7 @@ namespace CopyIt
                 if(placeRequested && previewFrames>=2)
                 {
                     placeRequested=false;
-                    if(!CanPlace) { Status="배치 불가: "+placementBlockReason; Diagnostics.Event("placement.rejected",Status);LogNetworkCandidates();PlaySound(false);return; }
+                    if(!CanPlace) { Status=L10n.Message("CopyIt.Text.7A1D649994")+placementBlockReason; Diagnostics.Event("placement.rejected",Status);LogNetworkCandidates();PlaySound(false);return; }
                     pending.Clear();pending.AddRange(roots);
                     Diagnostics.Event("placement.begin",$"count={pending.Count} anchor={previewAnchor} absolute={Absolute} groundSnap={GroundSnap}");
                     foreach(var root in roots) Diagnostics.Event("placement.pending",$"entity={root} transform={SnapshotTransformForLog(root)}");
@@ -337,6 +393,7 @@ namespace CopyIt
         private float3 Position(Item item)=>item.Decal?item.DecalPosition:CalculatePosition(item);
         private float3 CalculatePosition(Item item)
         {
+            if(GizmoHeld)return previewAnchor+math.mul(gizmoRotation,item.Transform.m_Position-anchor);
             var offset=SelectionMath.Rotate(item.Transform.m_Position.x-anchor.x,item.Transform.m_Position.z-anchor.z,angle);
             var position=new float3(previewAnchor.x+offset.X,0,previewAnchor.z+offset.Y);
             position.y=(GroundSnap||item.Decal)?GroundAt(position):PlacementMath.Height(item.Transform.m_Position.y,minY,previewAnchor.y,Absolute);
@@ -352,6 +409,7 @@ namespace CopyIt
                 // A nonnegative parent mesh emits Elevation without OnGround. GroundHeightSystem
                 // then preserves this world position instead of resampling each object's footprint.
                 definition.m_ParentMesh=0;
+                if(GizmoHeld){definition.m_Rotation=Rotation(item);definition.m_LocalRotation=Rotation(item);}
                 if(item.Decal){definition.m_Rotation=item.DecalRotation;definition.m_LocalRotation=item.DecalRotation;}
                 if(item.Container.HasValue){creation.m_SubPrefab=item.Container.Value.m_Prefab;definition.m_Scale=item.Container.Value.m_Scale;definition.m_Intensity=item.Container.Value.m_Intensity;}
                 if(item.AppearanceSeed.HasValue)creation.m_RandomSeed=item.AppearanceSeed.Value.m_Seed;
@@ -391,7 +449,8 @@ namespace CopyIt
                     points.Add(new ControlPoint { m_Position=position,m_HitPosition=position,m_Rotation=Rotation(item),
                         m_Elevation=position.y-TerrainUtils.SampleHeight(ref terrain,position) });
                     CreateDefinitions(item.Prefab,item.Container?.m_Prefab??Entity.Null,Entity.Null,Entity.Null,Entity.Null,Entity.Null,city.defaultTheme,
-                        points,default,false,city.leftHandTraffic,false,false,0,0,1,0,0,item.Seed,Snap.Upright,Game.Tools.AgeMask.Mature,false,default).Complete();
+                        points,default,false,city.leftHandTraffic,false,false,0,0,1,0,0,item.Seed,Snap.Upright,Game.Tools.AgeMask.Mature,false,
+                        overrides:default(PlacementOverrides),inputDeps:default).Complete();
                 }
             }
             Diagnostics.Event(previewExists?"preview.update":"preview.begin",$"count={clipboard.Count} anchor={point} absolute={Absolute} groundSnap={GroundSnap}");
@@ -407,7 +466,7 @@ namespace CopyIt
         // EN: Commit only after every root and possible edits to the existing city are validated.
         private bool ReadyPreview(out List<Entity> roots)
         {
-            placementBlockReason="미리보기 생성 대기";
+            placementBlockReason=L10n.Message("CopyIt.Text.20FA405019");
             roots=new List<Entity>(); temps.CompleteDependency();
             CacheNetworkPreview();
             using(var entities=temps.ToEntityArray(Allocator.Temp))
@@ -426,7 +485,7 @@ namespace CopyIt
                         var transform=EntityManager.GetComponentData<ObjectTransform>(entity);
                         if(math.distancesq(transform.m_Position,Position(item))<0.0001f && math.abs(math.dot(transform.m_Rotation.value,Rotation(item).value))>0.9999f && ContainerMatches(entity,item)) {match=entity;break;}
                     }
-                    if(match==Entity.Null) {placementBlockReason="오브젝트 미리보기의 위치·높이가 일치하지 않습니다.";return false;}
+                    if(match==Entity.Null) {placementBlockReason=L10n.Message("CopyIt.Text.B6CFF5C6A1");return false;}
                     used.Add(match); roots.Add(match);ApplyAppearance(match,item);
                 }
                 // Do not approve a native operation that would remove or relocate existing objects.
@@ -434,12 +493,17 @@ namespace CopyIt
                 using(var everyTemp=allTemps.ToEntityArray(Allocator.Temp)) foreach(var entity in everyTemp)
                 {
                     var t=EntityManager.GetComponentData<Temp>(entity);
-                    if(previewNetworks.Length>0 && t.m_Original!=Entity.Null && (EntityManager.HasComponent<Game.Net.Edge>(entity)||EntityManager.HasComponent<Game.Net.Node>(entity))){placementBlockReason="기존 도로에 연결되거나 영향을 주는 위치입니다.";return false;}
-                    if(t.m_Original!=Entity.Null && (t.m_Flags&(TempFlags.Delete|TempFlags.Modify|TempFlags.Replace))!=0) {placementBlockReason="기존 오브젝트를 변경하는 위치입니다.";return false;}
+                    if(previewNetworks.Length>0 && t.m_Original!=Entity.Null && (EntityManager.HasComponent<Game.Net.Edge>(entity)||EntityManager.HasComponent<Game.Net.Node>(entity)) && !UnchangedNetworkReference(entity,t))
+                    {
+                        placementBlockReason=L10n.Message("CopyIt.Text.F60301C3C7");
+                        NetworkIssue($"existing network changed: entity={entity} original={t.m_Original} flags={t.m_Flags}");
+                        return false;
+                    }
+                    if(t.m_Original!=Entity.Null && (t.m_Flags&(TempFlags.Delete|TempFlags.Modify|TempFlags.Replace))!=0) {placementBlockReason=L10n.Message("CopyIt.Text.F23EA9C557");return false;}
                 }
             }
             m_ErrorQuery.CompleteDependency();
-            if(!m_ErrorQuery.IsEmptyIgnoreFilter){placementBlockReason="게임의 충돌·건설 조건 검사에서 거부되었습니다.";return false;}
+            if(!m_ErrorQuery.IsEmptyIgnoreFilter){placementBlockReason=L10n.Message("CopyIt.Text.8773C036EE");return false;}
             return roots.Count==clipboard.Count && ValidateNetworkTopology(roots,true);
         }
         private bool VerifyPlacement()
@@ -459,7 +523,7 @@ namespace CopyIt
                 if(exact)exactCount++;
                 Diagnostics.Event(exact?"placement.created":"placement.height.mismatch",$"entity={entity} position={position}");
             }
-            Status=$"{applied}/{pending.Count}개 생성 확인 · 계속 클릭하면 반복 배치";
+            Status=L10n.Message("CopyIt.Text.2FEE64A9B3", (applied), (pending.Count));
             bool success=applied==pending.Count && exactCount==pending.Count && ValidateNetworkTopology(pending,false);
             Diagnostics.Event(success?"placement.complete":"placement.incomplete",Status+" exact="+exactCount);pending.Clear();
             if(success)PlaySound(true);
@@ -517,8 +581,6 @@ namespace CopyIt
         private void Touch(Entity e) { if(!EntityManager.HasComponent<BatchesUpdated>(e))EntityManager.AddComponent<BatchesUpdated>(e); }
     }
 }
-
-
 
 
 

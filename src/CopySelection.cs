@@ -34,7 +34,7 @@ namespace CopyIt
         internal int PreviewCount=>regionPreview.Count;
         internal bool Searching=>false;
         protected override void OnDestroy(){ResetRegion();base.OnDestroy();}
-        private void SetSelectionMode(int mode){if(Copying)return;Eyedropper=false;ResetRegion();pressed=false;hover=Entity.Null;SelectionMode=mode;Status=mode==0?"선택할 오브젝트를 클릭하세요.":"오브젝트 기준점이 영역 안에 있으면 선택합니다.";SyncHighlights();}
+        private void SetSelectionMode(int mode){if(Copying)return;Eyedropper=false;ResetRegion();pressed=false;hover=Entity.Null;SelectionMode=mode;Status=mode==0?L10n.Message("CopyIt.Text.F6EA647C2C"):L10n.Message("CopyIt.Text.25331ED127");SyncHighlights();}
         private void ResetRegion()
         {
             regionPreview.Clear();loggedPreview.Clear();polygonWorld.Clear();polygonScreen.Clear();
@@ -120,16 +120,16 @@ namespace CopyIt
         }
         private void CommitRegion()
         {
-            if(!EvaluateRegion())return;if(!regionAdditive)selected.Clear();
+            if(!EvaluateRegion())return;if(!regionAdditive){selected.Clear();lastIndividualSelection=Entity.Null;}
             foreach(var entity in regionPreview)if(Eligible(entity)&&selected.Count<Limit)selected.Add(entity);
             Diagnostics.Event("selection.region.commit",$"mode={SelectionMode} count={selected.Count}");
-            ResetRegion();pressed=false;hover=Entity.Null;SyncHighlights();Status=$"{selected.Count}개 선택 · Ctrl+C 복사";
+            ResetRegion();pressed=false;hover=Entity.Null;SyncHighlights();Status=L10n.Message("CopyIt.Text.870C5F4972", (selected.Count));
         }
         internal void FinishPolygon()
         {
             if(SelectionMode!=2||polygonWorld.Count<3||regionCommitting)return;
             ProjectPolygon(false);
-            if(!SelectionMath.SimplePolygon(polygonScreen)){Status="선이 교차하지 않는 다각형으로 그려주세요.";Diagnostics.Event("polygon.invalid");return;}
+            if(!SelectionMath.SimplePolygon(polygonScreen)){Status=L10n.Message("CopyIt.Text.286DBF620D");Diagnostics.Event("polygon.invalid");return;}
             regionCommitting=true;polygonCursorValid=false;
             CommitRegion();
         }
@@ -143,6 +143,7 @@ namespace CopyIt
                 if(!IncludeUnderground&&IsUndergroundNetwork(hover))hover=Entity.Null;
                 var decal=PickDecal(mouse,true);if(decal!=Entity.Null)hover=decal;
                 if(hover==Entity.Null)hover=PickSampleNetwork(mouse);
+                if(!MatchesView(hover))hover=Entity.Null;
                 if(applyAction.WasPressedThisFrame()&&hover!=Entity.Null){
                     var prefab=EntityManager.GetComponentData<Game.Prefabs.PrefabRef>(hover).m_Prefab;
                     var sub=EntityManager.HasComponent<Game.Tools.EditorContainer>(hover)?EntityManager.GetComponentData<Game.Tools.EditorContainer>(hover).m_Prefab:Entity.Null;
@@ -150,7 +151,7 @@ namespace CopyIt
                     if(sampleCandidates.Count>0){
                         selected.Clear();foreach(var candidate in sampleCandidates)if(Eligible(candidate)&&selected.Count<Limit)selected.Add(candidate);
                     }
-                    PlaySelectionSound();Status=$"에셋 {samples.Count}종 지정 · 계속 추가하거나 선택 방식 버튼으로 완료";
+                    PlaySelectionSound();Status=L10n.Message("CopyIt.Text.66537D0FF9", (samples.Count));
                     Diagnostics.Event("selection.eyedropper",$"added={added} prefab={prefab} subPrefab={sub} assets={samples.Count} selected={selected.Count}");
                 }
                 SyncHighlights();return;
@@ -173,7 +174,7 @@ namespace CopyIt
                     if(polygonCloseSnapped){FinishPolygon();return;}
                     if(polygonWorld.Count==0){BeginRegion();regionAdditive=shift;}
                     if(polygonWorld.Count<32){polygonWorld.Add(polygonCursor);Diagnostics.Event("polygon.vertex",polygonCursor.ToString());}
-                    else Status="최대 32개 꼭짓점입니다. 첫 점을 클릭하거나 Enter로 마치세요.";
+                    else Status=L10n.Message("CopyIt.Text.808EBED051");
                 }
                 if(Keyboard.current!=null&&Keyboard.current.enterKey.wasPressedThisFrame){FinishPolygon();return;}
             }
@@ -189,8 +190,8 @@ namespace CopyIt
                 {
                     if(Box&&Vector2.Distance(mouse,pressPosition)>5){pressed=false;regionCommitting=true;CommitRegion();return;}
                     pressed=false;if(!shift)selected.Clear();
-                    if(Eligible(pressEntity)){if(shift&&selected.Contains(pressEntity))selected.Remove(pressEntity);else if(selected.Count<Limit)selected.Add(pressEntity);}
-                    ResetRegion();Status=$"{selected.Count}개 선택 · Ctrl+C 복사";Diagnostics.Event("selection.changed",string.Join(",",selected));
+                    if(Eligible(pressEntity)){if(shift&&selected.Contains(pressEntity)){selected.Remove(pressEntity);if(lastIndividualSelection==pressEntity)lastIndividualSelection=Entity.Null;}else if(selected.Count<Limit){selected.Add(pressEntity);if(IsReferenceEntity(pressEntity))lastIndividualSelection=pressEntity;}}
+                    ResetRegion();Status=L10n.Message("CopyIt.Text.870C5F4972", (selected.Count));Diagnostics.Event("selection.changed",string.Join(",",selected));
                 }
             }
             if(RegionActive)

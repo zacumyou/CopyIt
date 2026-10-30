@@ -15,22 +15,26 @@ namespace CopyIt
     {
         internal static Settings Options;
         internal static bool Ready;
-        internal const string TestedGameHash = "721E7E17BF74299AA2B988C1BD07E90874BB8BC72D263229500C4BF639E7E4EE";
+        private Locale en,ko;
+        // KO/EN: 1.6.2f1 (767.21d1), reviewed native placement and bulldozer contracts.
+        internal const string TestedGameHash = "AAEE15C4FA41C130ABAA1183840667E4FAAE531D67E8A9FA7536618EFFA2F86A";
         public void OnLoad(UpdateSystem updateSystem)
         {
             Diagnostics.Start();
+            Ready=false;
             Options = new Settings(this);
             AssetDatabase.global.LoadSettings("CopyIt", Options, new Settings(this));
+            Options.PrepareToolSettings();
             Options.RegisterKeyBindings(); Options.RegisterInOptionsUI();
-            GameManager.instance.localizationManager.AddSource("en-US",new Locale(Options,false));
-            GameManager.instance.localizationManager.AddSource("ko-KR",new Locale(Options,true));
+            GameManager.instance.localizationManager.AddSource("en-US",en=new Locale(Options,false));
+            GameManager.instance.localizationManager.AddSource("ko-KR",ko=new Locale(Options,true));
             try
             {
                 string hash;
                 using(var sha=SHA256.Create()) using(var stream=File.OpenRead(typeof(Game.Tools.ToolSystem).Assembly.Location))
                     hash=BitConverter.ToString(sha.ComputeHash(stream)).Replace("-","");
                 Diagnostics.Event("game.compatibility", hash);
-                if(hash!=TestedGameHash) throw new InvalidOperationException("Game DLL changed; Copy It needs compatibility review.");
+                if(hash!=TestedGameHash) throw new InvalidOperationException($"Game DLL changed; Copy It targets 1.6.2f1 and needs compatibility review. Expected {TestedGameHash}, actual {hash}.");
                 updateSystem.UpdateAt<CopyVisibilityRefreshSystem>(SystemUpdatePhase.ToolUpdate);
                 updateSystem.UpdateBefore<CopyVisibilitySystem>(SystemUpdatePhase.ModificationEnd);
                 updateSystem.UpdateAt<CopyTool>(SystemUpdatePhase.ToolUpdate);
@@ -48,6 +52,8 @@ namespace CopyIt
         {
             World.DefaultGameObjectInjectionWorld?.GetExistingSystemManaged<CopyTool>()?.Deactivate();
             World.DefaultGameObjectInjectionWorld?.GetExistingSystemManaged<CopyInputSystem>()?.Release();
+            if(en!=null)GameManager.instance.localizationManager.RemoveSource("en-US",en);
+            if(ko!=null)GameManager.instance.localizationManager.RemoveSource("ko-KR",ko);
             Ready=false; Options?.UnregisterInOptionsUI(); Diagnostics.Stop();
         }
     }

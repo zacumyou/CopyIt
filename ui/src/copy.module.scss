@@ -1,4 +1,4 @@
-/* KO: 게임 내 Coherent UI의 폰트/포인터 규칙을 유지합니다. EN: Preserve Coherent UI font and pointer rules. */
+﻿/* KO: 게임 내 Coherent UI의 폰트/포인터 규칙을 유지합니다. EN: Preserve Coherent UI font and pointer rules. */
 .panel { pointer-events:auto; z-index:100; position:absolute; top:140rem; right:28rem; width:354rem; color:rgba(246,247,248,0.94); background-color:rgba(18,21,23,0.84); border:1rem solid rgba(255,255,255,0.12); border-radius:10rem; overflow:hidden; font-size:13rem; box-shadow:0 8rem 26rem rgba(0,0,0,0.22); }
 .header,.titleBar { background-color:rgba(35,41,46,0.97); }
 .titleBar { display:flex; align-items:center; padding:18rem 16rem; min-height:66rem; }
@@ -52,7 +52,7 @@
 .foldButton .typeIcon { width:18rem; height:18rem; }
 
 .buttonLabel { display:flex; align-items:center; justify-content:center; pointer-events:none; }
-.labelIcon { width:16rem; height:16rem; margin-right:5rem; flex-shrink:0; pointer-events:none; }
+.labelIcon { width:20rem; height:20rem; margin-right:5rem; flex-shrink:0; pointer-events:none; }
 .buttonLabel > span { white-space:nowrap; font-family:"Noto Sans KR"; }
 
 .rotation > span { display:flex; align-items:center; }
@@ -60,7 +60,7 @@
 
 .headerRow { display:flex; align-items:center; }
 .headerText { flex:1; min-width:0; }
-.dragGrip { width:16rem; height:24rem; margin-right:12rem; opacity:.38; flex-shrink:0; pointer-events:none; }
+.dragGrip { width:20rem; height:24rem; margin-right:12rem; flex-shrink:0; pointer-events:none; }
 
 /* Remove the native title bar's unused leading icon reservation. */
 .iconSpace { display:none; width:0; min-width:0; margin:0; padding:0; }
@@ -77,7 +77,7 @@
 .panel,.compact { transform-origin:top left; }
 .header { cursor:move; }
 .dragHandle { display:flex; align-items:center; justify-content:center; width:22rem; height:34rem; cursor:move; flex-shrink:0; }
-.dragHandle img { width:14rem; height:23rem; opacity:.55; pointer-events:none; }
+.dragHandle img { width:20rem; height:23rem; pointer-events:none; }
 
 .dragShield { position:fixed; top:0; left:0; width:100%; height:100%; z-index:99; pointer-events:auto; cursor:move; }
 
@@ -97,3 +97,11 @@
 /* Active choices must retain a visible hover response in both panel layouts. */
 .button.selected:hover:not(:disabled),.button.primary:hover:not(:disabled) { color:#fff; background-color:rgba(235,243,250,.3); border-color:rgba(244,249,255,.72); }
 .button.methodSelected:hover:not(:disabled) { color:#fff; background-color:rgba(67,173,231,.5); border-color:#c1edff; }
+.deleteButton { width: 100%; margin-top: 12rem; color: #ffd4d4; background-color: rgba(115,45,45,.36); border-color: rgba(240,130,130,.45); }
+.deleteButton:hover { background-color: rgba(155,65,65,.55); }
+/* Allow translated labels to wrap within the existing panel width. */
+.row > .button { min-width:0; }
+.buttonLabel { min-width:0; max-width:100%; }
+.buttonLabel > span { min-width:0; white-space:normal; overflow-wrap:break-word; }
+/* KO: 비활성 아이콘은 실행 가능한 버튼과 구분합니다. EN: Dim icons only for disabled actions. */
+.button:disabled .labelIcon,.button:disabled .typeIcon { opacity:.3; }

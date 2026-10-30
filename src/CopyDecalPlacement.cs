@@ -5,14 +5,27 @@ using Game.Simulation;
 using Unity.Mathematics;
 namespace CopyIt {
     public partial class CopyTool {
+        private bool slopedItEnabled;
+        private void RefreshSlopedItState(){
+            bool enabled=SlopedItCompatibility.IsEnabled();
+            if(enabled==slopedItEnabled)return;
+            slopedItEnabled=enabled;dirty=true;placeRequested=false;CanPlace=false;
+            Diagnostics.Event("slopedit.state",$"enabled={enabled}");
+        }
         private struct DecalHeightSampler:IHeightSampler {
             internal TerrainHeightData Data;
             public float Height(float3 p)=>TerrainUtils.SampleHeight(ref Data,p);
         }
         private void PrepareDecalPlacement(Item item){
             if(!item.Decal)return;
+            if(GizmoHeld){item.DecalPosition=CalculatePosition(item);item.DecalRotation=math.mul(gizmoRotation,item.Transform.m_Rotation);return;}
             var p=CalculatePosition(item);item.DecalPosition=p;
             var rotation=math.mul(quaternion.RotateY(math.radians(angle)),item.Transform.m_Rotation);
+            if(!SlopedItCompatibility.ShouldAlign(slopedItEnabled,GroundSnap)){
+                item.DecalRotation=rotation;
+                Diagnostics.Event("preview.decal.originalRotation",$"source={item.Source} slopedIt=True groundSnap=False");
+                return;
+            }
             var heading=math.forward(rotation);heading.y=0;
             rotation=quaternion.LookRotationSafe(math.normalizesafe(heading,new float3(0,0,1)),math.up());
             float2 lo=new float2(-.5f),hi=new float2(.5f);

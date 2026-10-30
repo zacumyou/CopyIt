@@ -22,7 +22,6 @@ namespace CopyIt
     public static class SelectionMath
     {
         public static bool Underground(bool tunnel,float start,float end)=>tunnel||start<-.01f||end<-.01f;
-        public static float WheelAngle(float angle,int notches)=>NormalizeAngle(angle+notches*.5f);
         public static float NormalizeAngle(float value) {value%=360;return value<0?value+360:value;}
         public static Point2 Rotate(float x,float z,float degrees)
         {double a=degrees*Math.PI/180;return new Point2((float)(x*Math.Cos(a)+z*Math.Sin(a)),(float)(z*Math.Cos(a)-x*Math.Sin(a)));}

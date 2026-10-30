@@ -20,7 +20,7 @@ namespace CopyIt
             directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)+"Low", "Colossal Order", "Cities Skylines II", "Logs", "CopyIt");
             session = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fff");
             try { Directory.CreateDirectory(directory); Open(); } catch (Exception e) { Log.Error(e,"Cannot open Copy It event log"); }
-            Event("session.start", "Copy It 0.5.6");
+            Event("session.start", "Copy It " + typeof(Mod).Assembly.GetName().Version.ToString(3));
         }
         private static void Open()
         {
@@ -29,7 +29,7 @@ namespace CopyIt
         }
         internal static void Event(string action, string details = "")
         {
-            string line = DateTime.UtcNow.ToString("O") + " | " + action + " | " + details.Replace("\r", "\\r").Replace("\n", "\\n");
+            string line = DateTime.UtcNow.ToString("O") + " | " + action + " | " + L10n.ForLog(details).Replace("\r", "\\r").Replace("\n", "\\n");
             lock (Gate)
             {
                 try { if (writer != null && writer.BaseStream.Length > 8*1024*1024) { writer.Dispose(); Open(); } writer?.WriteLine(line); }

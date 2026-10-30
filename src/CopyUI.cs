@@ -41,6 +41,7 @@ namespace CopyIt
             AddBinding(filters=new ValueBinding<int>("CopyIt","filters",255));
             AddBinding(status=new ValueBinding<string>("CopyIt","status",""));
             AddBinding(rectangle=new ValueBinding<string>("CopyIt","rectangle",""));
+            AddBinding(deleting=new ValueBinding<bool>("CopyIt","deleting",false));
             AddBinding(new TriggerBinding<string>("CopyIt","command",value=>
             {
                 try {tool.Command(value);} catch(Exception e){Diagnostics.Failure("ui.command.failed",e);}
@@ -52,10 +53,11 @@ namespace CopyIt
             tool.ClearState();Diagnostics.Event("world.preload",purpose+" "+mode);
             base.OnGamePreload(purpose,mode);
         }
+        private ValueBinding<bool> deleting;
         protected override void OnUpdate()
         {
             base.OnUpdate();
-            includeUnderground.Update(tool.IncludeUnderground);
+            deleting.Update(tool.Deleting);includeUnderground.Update(tool.IncludeUnderground);
             selectionMode.Update(tool.SelectionMode);polygonCount.Update(tool.PolygonCount);previewCount.Update(tool.PreviewCount);searching.Update(tool.Searching);polygon.Update(tool.PolygonPath());angle.Update(tool.Angle);
             groundSnap.Update(tool.GroundSnap);assetFilter.Update(tool.AssetFilterActive);assetFilterName.Update(tool.AssetFilterName);eyedropper.Update(tool.Eyedropper);compact.Update(tool.Compact);active.Update(tool.Active);copying.Update(tool.Copying);absolute.Update(tool.Absolute);box.Update(tool.Box);
             canPlace.Update(tool.CanPlace);count.Update(tool.Copying?tool.ClipboardCount:tool.Count);filters.Update(tool.Filters);status.Update(tool.Status);

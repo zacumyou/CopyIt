@@ -2,6 +2,14 @@ using System;
 using CopyIt;
 
 int checks=0;
+SlopedItCompatibilityTests.Run();
+// Junction reconstruction may delete generated children, but must preserve independent neighbors.
+bool Scope(int e)=>DeletionScope.Allows(e,x=>x==1,x=>x==3?2:x==5?4:x==6?3:0,x=>x==4,x=>x==2);
+if(!Scope(1)||Scope(2)||!Scope(3)||!Scope(4)||!Scope(5)||!Scope(6)||Scope(7))throw new Exception("deletion junction scope regression");
+if(DeletionScope.Allows(8,x=>false,x=>x==8?9:8,x=>false,x=>false))throw new Exception("cyclic ownership accepted");
+checks+=8;
+if(!DeletionScope.Allows(0,x=>throw new Exception("null original queried selection"),x=>throw new Exception("null original queried owner"),x=>throw new Exception("null original queried node"),x=>throw new Exception("null original queried junction")))throw new Exception("transient deletion incorrectly rejected");
+checks++;
 void Near(float actual,float expected,string name,float tolerance=0.0001f)
 {
     if(Math.Abs(actual-expected)>tolerance || float.IsNaN(actual))throw new Exception(name+": "+actual+" != "+expected);
@@ -9,6 +17,13 @@ void Near(float actual,float expected,string name,float tolerance=0.0001f)
 }
 void Check(bool condition,string name) { if(!condition)throw new Exception(name);checks++; }
 
+// KO: 재생성 참조의 순서 변경만 허용. EN: Only reordering may pass reference connectivity checks.
+Check(NetworkReferencePolicy.SameConnections(new[]{1,2},new[]{2,1}),"unchanged reordered network reference");
+Check(NetworkReferencePolicy.SameConnections(Array.Empty<int>(),Array.Empty<int>()),"empty network reference");
+Check(!NetworkReferencePolicy.SameConnections(new[]{1,2},new[]{1,3}),"new external connection blocked");
+Check(!NetworkReferencePolicy.SameConnections(new[]{1,2},new[]{1}),"missing connection blocked");
+Check(!NetworkReferencePolicy.SameConnections(new[]{1,2},new[]{1,1}),"duplicate cannot hide removed connection");
+Check(!NetworkReferencePolicy.SameConnections(new[]{1},new[]{1,2}),"additional copied edge blocked");
 // Translate the complete road profile rigidly; destination terrain does not reshape it.
 Near(PlacementMath.Height(0,0,4,false),4,"ground road start 0 to 4");
 Near(PlacementMath.Height(11,0,4,false),15,"ground road end 11 to 15");
@@ -131,10 +146,6 @@ Check(!assetSet.Add(10,0)&&assetSet.Count==2,"duplicate sample deduplicated");
 assetSet.Add(40,100);Check(!assetSet.Contains(40,101),"netlane and decal subprefab identity");
 Check(!assetSet.Contains(11,0),"same type different asset excluded");
 assetSet.Clear();Check(assetSet.Count==0&&!assetSet.Contains(10,0),"clear samples");
-Near(SelectionMath.WheelAngle(0,1),.5f,"wheel half degree");
-Near(SelectionMath.WheelAngle(0,-1),359.5f,"wheel negative wrap");
-Near(SelectionMath.WheelAngle(359.5f,1),0,"wheel full turn wrap");
-Near(SelectionMath.WheelAngle(12.3f,2),13.3f,"wheel keeps free drag angle");
 Check(SelectionMath.Underground(true,0,0),"tunnel flag independent of height");
 Check(SelectionMath.Underground(false,0,-8),"underground entrance segment");
 Check(SelectionMath.Underground(false,-8,-8),"underground segment");

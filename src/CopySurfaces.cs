@@ -46,7 +46,7 @@ namespace CopyIt {
                 var t=EntityManager.GetComponentData<Temp>(e);
                 if(!used.Contains(e)&&t.m_Original==Entity.Null&&(t.m_Flags&TempFlags.Create)!=0&&SurfaceMatches(e,item))return e;
             }
-            placementBlockReason="표면 미리보기의 꼭짓점·높이가 일치하지 않습니다.";return Entity.Null;
+            placementBlockReason=L10n.Message("CopyIt.Text.49EBCB1F74");return Entity.Null;
         }
         private struct SurfaceRegionIterator:INativeQuadTreeIterator<Game.Areas.AreaSearchItem,QuadTreeBoundsXZ>,IUnsafeQuadTreeIterator<Game.Areas.AreaSearchItem,QuadTreeBoundsXZ>{
             internal RegionIterator Region;

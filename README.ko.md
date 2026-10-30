@@ -1,3 +1,5 @@
+> Published source: **0.6.3**. See [CHANGELOG.md](CHANGELOG.md) for the matching Paradox Mods update.
+
 ## 0.5.6 — 첫 Unlisted 배포 준비
 한·영 유지보수 주석을 추가했습니다. 우클릭 자유 회전과 휠 0.5° 회전으로 소개글/코드/UI를 맞췄으며 복사 중 휠 카메라 줌을 차단합니다. Anarchy 74604를 Paradox Mods 필수 종속성으로 지정합니다. 제거 후 무영향은 보장하지 않습니다(표시 보호 컴포넌트가 저장되며 제거 시 보호 동작 중지).
 

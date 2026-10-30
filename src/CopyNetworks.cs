@@ -25,7 +25,7 @@ namespace CopyIt
         }
         private Entity[] previewNetworks=Array.Empty<Entity>();
         private string lastNetworkIssue="";
-        private string placementBlockReason="미리보기 생성 대기";
+        private string placementBlockReason=L10n.Message("CopyIt.Text.20FA405019");
         private void NetworkIssue(string reason){if(lastNetworkIssue==reason)return;lastNetworkIssue=reason;Diagnostics.Event("network.validation",reason);}
         private readonly List<Entity> networkDefinitions=new List<Entity>();
         private void ClearNetworkDefinitions(){foreach(var e in networkDefinitions)if(EntityManager.Exists(e))EntityManager.DestroyEntity(e);networkDefinitions.Clear();previewNetworks=Array.Empty<Entity>();}
@@ -98,6 +98,7 @@ namespace CopyIt
         private static IEnumerable<float3> CurvePoints(Bezier4x3 curve){yield return curve.a;yield return curve.b;yield return curve.c;yield return curve.d;}
         private float3 MapPoint(float3 source)
         {
+            if(GizmoHeld)return previewAnchor+math.mul(gizmoRotation,source-anchor);
             var offset=SelectionMath.Rotate(source.x-anchor.x,source.z-anchor.z,angle);
             var point=new float3(previewAnchor.x+offset.X,PlacementMath.Height(source.y,minY,previewAnchor.y,Absolute),previewAnchor.z+offset.Y);
             if(GroundSnap)point.y=GroundAt(point);return point;
@@ -105,7 +106,7 @@ namespace CopyIt
         private float3 MapNode(Item item,bool start)=>MapPoint(start?item.Network.StartPosition:item.Network.EndPosition);
         private Bezier4x3 MappedCurve(Item item){
             var c=item.Network.Curve;var mapped=new Bezier4x3(MapPoint(c.a),MapPoint(c.b),MapPoint(c.c),MapPoint(c.d));
-            if(GroundSnap){
+            if(GroundSnap&&!GizmoHeld){
                 float h1=GroundAt(MathUtils.Position(mapped,1f/3f)),h2=GroundAt(MathUtils.Position(mapped,2f/3f));
                 var heights=PlacementMath.FitTerrainCurve(mapped.a.y,h1,h2,mapped.d.y);
                 mapped.b.y=heights.Item1;mapped.c.y=heights.Item2;
@@ -161,7 +162,7 @@ namespace CopyIt
                 var temp=EntityManager.GetComponentData<Temp>(e);
                 if(!used.Contains(e)&&temp.m_Original==Entity.Null&&(temp.m_Flags&TempFlags.Create)!=0&&NetworkMatches(e,item))return e;
             }
-            placementBlockReason="도로 미리보기의 곡선·높이·업그레이드가 일치하지 않습니다.";
+            placementBlockReason=L10n.Message("CopyIt.Text.7180BB1695");
             NetworkIssue($"source={item.Source} prefab={PrefabName(item.Container?.m_Prefab??item.Prefab)} no exact new curve/height/upgrade match; temporaryEdges={previewNetworks.Length}");
             return Entity.Null;
         }
@@ -194,6 +195,47 @@ namespace CopyIt
                 Diagnostics.Event("network.candidate",$"entity={entity} prefab={EntityManager.GetComponentData<PrefabRef>(entity).m_Prefab} original={temp.m_Original} flags={temp.m_Flags} start={edge.m_Start} end={edge.m_End} a={curve.a} b={curve.b} c={curve.c} d={curve.d}");
             }
         }
+        // KO: 네이티브 재생성용 참조는 실제 형상/연결이 그대로일 때만 허용합니다.
+        // EN: Allow native regeneration references only when geometry and connectivity are unchanged.
+        private bool UnchangedNetworkReference(Entity entity,Temp temp)
+        {
+            var original=temp.m_Original;
+            if(!EntityManager.Exists(original)||EntityManager.HasComponent<Deleted>(original))return false;
+            if((temp.m_Flags&(TempFlags.Create|TempFlags.Delete|TempFlags.Modify|TempFlags.Replace|TempFlags.Combine|TempFlags.Upgrade|TempFlags.Duplicate))!=0)return false;
+            if(!SameNetworkComponent<PrefabRef>(entity,original)||!SameNetworkComponent<Owner>(entity,original)
+                ||!SameNetworkComponent<EditorContainer>(entity,original)||!SameNetworkComponent<Game.Net.Elevation>(entity,original)
+                ||!SameNetworkComponent<Game.Net.Upgraded>(entity,original)||!SameNetworkComponent<Game.Net.Curve>(entity,original)
+                ||!SameNetworkComponent<Game.Net.Node>(entity,original))return false;
+            bool edge=EntityManager.HasComponent<Game.Net.Edge>(entity);
+            if(edge!=EntityManager.HasComponent<Game.Net.Edge>(original))return false;
+            if(edge){
+                var a=EntityManager.GetComponentData<Game.Net.Edge>(entity);var b=EntityManager.GetComponentData<Game.Net.Edge>(original);
+                if(OriginalNetworkEntity(a.m_Start)!=b.m_Start||OriginalNetworkEntity(a.m_End)!=b.m_End)return false;
+            }
+            if(EntityManager.HasBuffer<Game.Net.ConnectedEdge>(entity)!=EntityManager.HasBuffer<Game.Net.ConnectedEdge>(original))return false;
+            if(EntityManager.HasBuffer<Game.Net.ConnectedEdge>(entity)){
+                var a=EntityManager.GetBuffer<Game.Net.ConnectedEdge>(entity,true);var b=EntityManager.GetBuffer<Game.Net.ConnectedEdge>(original,true);
+                var expected=new List<Entity>();var actual=new List<Entity>();
+                for(int i=0;i<b.Length;i++)expected.Add(b[i].m_Edge);
+                for(int i=0;i<a.Length;i++)actual.Add(OriginalNetworkEntity(a[i].m_Edge));
+                if(!NetworkReferencePolicy.SameConnections(expected,actual))return false;
+            }
+            if(EntityManager.HasBuffer<Game.Net.ConnectedNode>(entity)!=EntityManager.HasBuffer<Game.Net.ConnectedNode>(original))return false;
+            if(EntityManager.HasBuffer<Game.Net.ConnectedNode>(entity)){
+                var a=EntityManager.GetBuffer<Game.Net.ConnectedNode>(entity,true);var b=EntityManager.GetBuffer<Game.Net.ConnectedNode>(original,true);
+                var expected=new List<Game.Net.ConnectedNode>();var actual=new List<Game.Net.ConnectedNode>();
+                for(int i=0;i<b.Length;i++)expected.Add(b[i]);
+                for(int i=0;i<a.Length;i++){var node=a[i];node.m_Node=OriginalNetworkEntity(node.m_Node);actual.Add(node);}
+                if(!NetworkReferencePolicy.SameConnections(expected,actual))return false;
+            }
+            return true;
+        }
+        private Entity OriginalNetworkEntity(Entity entity)=>EntityManager.HasComponent<Temp>(entity)&&EntityManager.GetComponentData<Temp>(entity).m_Original!=Entity.Null?EntityManager.GetComponentData<Temp>(entity).m_Original:entity;
+        private bool SameNetworkComponent<T>(Entity a,Entity b) where T:unmanaged,IComponentData
+        {
+            bool present=EntityManager.HasComponent<T>(a);
+            return present==EntityManager.HasComponent<T>(b)&&(!present||EntityManager.GetComponentData<T>(a).Equals(EntityManager.GetComponentData<T>(b)));
+        }
         private bool ValidateNetworkTopology(List<Entity> roots,bool temporary)
         {
             var mapping=new NodeMapping<Entity>();
@@ -202,7 +244,7 @@ namespace CopyIt
                 var item=clipboard[i];if(item.Network==null)continue;
                 if(!EntityManager.HasComponent<Game.Net.Edge>(roots[i]))return false;
                 var edge=EntityManager.GetComponentData<Game.Net.Edge>(roots[i]);
-                if(!Node(item.Network.Start,edge.m_Start,MapNode(item,true))||!Node(item.Network.End,edge.m_End,MapNode(item,false))){placementBlockReason="도로의 새 교차로 연결 관계가 원본과 다릅니다.";NetworkIssue($"source={item.Source} new-only topology mismatch");return false;}
+                if(!Node(item.Network.Start,edge.m_Start,MapNode(item,true))||!Node(item.Network.End,edge.m_End,MapNode(item,false))){placementBlockReason=L10n.Message("CopyIt.Text.8A2C02B034");NetworkIssue($"source={item.Source} new-only topology mismatch");return false;}
             }
             return true;
             bool Node(Entity source,Entity target,float3 position){

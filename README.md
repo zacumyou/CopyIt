@@ -1,3 +1,5 @@
+> Published source: **0.6.3**. See [CHANGELOG.md](CHANGELOG.md) for the matching Paradox Mods update.
+
 # Copy It / 복사해!
 
 Cities: Skylines II code mod for copying selected objects, networks and surfaces.

@@ -3,7 +3,8 @@ const fs=require('node:fs'),path=require('node:path'),{pathToFileURL}=require('n
 const React=require('../ui/node_modules/react'),{renderToStaticMarkup}=require('../ui/node_modules/react-dom/server');
 let values={active:true,count:12,filters:7,status:'12개 선택 · Ctrl+C 복사',selectionMode:1};
 const h=React.createElement;
-global.window={React,innerWidth:1000,innerHeight:800,'cs2/api':{bindValue:(g,key,initial)=>({key,initial}),useValue:b=>values[b.key]??b.initial,trigger:()=>{}},'cs2/ui':{
+const locale=require('../lang/ko-KR.json');
+global.window={'cs2/l10n':{useLocalization:()=>({translate:(id,fallback)=>locale[id]??fallback})},React,innerWidth:1000,innerHeight:800,'cs2/api':{bindValue:(g,key,initial)=>({key,initial}),useValue:b=>values[b.key]??b.initial,trigger:()=>{}},'cs2/ui':{
  Button:p=>h('button',{className:[p.theme?.button,p.className].filter(Boolean).join(' '),disabled:p.disabled},p.children),FloatingButton:()=>null,Tooltip:p=>p.children,
  Panel:p=>h('section',{className:p.theme.panel},h('div',{className:p.theme.header},h('div',{className:p.theme.titleBar},h('div',{className:p.theme.title},p.header),h('button',{className:p.theme.closeButton},'×'))),h('div',{className:p.theme.content},p.children))
 }};

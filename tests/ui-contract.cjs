@@ -1,4 +1,4 @@
-// Compiled UI contract tests with cs2/* stand-ins. No claim of game rendering/audio validation.
+﻿// Compiled UI contract tests with cs2/* stand-ins. No claim of game rendering/audio validation.
 const assert = require('node:assert/strict');
 const {pathToFileURL}=require('node:url');
 const path=require('node:path');
@@ -8,7 +8,8 @@ let values={active:false,copying:false,absolute:false,box:false,count:0,filters:
 let commands=[],buttons=[];
 const labelOf=x=>x['aria-label']??(typeof x.children==='string'?x.children:x.children?.props?.children);
 const NativeButton=props=>{buttons.push(props);return React.createElement('button',{disabled:props.disabled,'data-selected':props.selected},props.children);};
-global.window={React,innerWidth:1920,innerHeight:1080,'cs2/api':{
+const locale=require('../lang/ko-KR.json');
+global.window={'cs2/l10n':{useLocalization:()=>({translate:(id,fallback)=>locale[id]??fallback})},React,innerWidth:1920,innerHeight:1080,'cs2/api':{
     bindValue:(group,key,initial)=>({group,key,initial}),useValue:binding=>values[binding.key]??binding.initial,
     trigger:(...args)=>commands.push(args)
 },'cs2/ui':{
@@ -25,6 +26,13 @@ global.window={React,innerWidth:1920,innerHeight:1080,'cs2/api':{
     const render=()=>{buttons=[];return renderToStaticMarkup(React.createElement(hooks.Game));};
     assert.equal(render(),'');
     values.active=true;
+    render();assert.equal(buttons.find(x=>labelOf(x)==='선택 삭제').disabled,true);
+    values.count=2;render();
+    assert.equal(buttons.find(x=>labelOf(x)==='선택 삭제').disabled,false);
+    buttons.find(x=>labelOf(x)==='선택 삭제').onSelect();assert.deepEqual(commands.pop(),['CopyIt','command','delete']);
+    for(const busy of ['deleting','searching']){values[busy]=true;render();assert.equal(buttons.find(x=>labelOf(x)==='선택 삭제').disabled,true);values[busy]=false;}
+    values.polygonCount=2;render();assert.equal(buttons.find(x=>labelOf(x)==='선택 삭제').disabled,true);values.polygonCount=0;
+    values.copying=true;render();assert.ok(!buttons.find(x=>labelOf(x)==='선택 삭제'));values.copying=false;values.count=0;
     let html=render();assert.ok(html.includes('COPY IT'));assert.ok(html.includes('지형 기준'));assert.ok(html.includes('다각형 선택'));for(const label of ['도로','넷레인','데칼'])assert.ok(html.includes(label));
     assert.ok(!html.includes('그룹 최저'));assert.ok(!html.includes('1.5 /'));assert.ok(!html.includes('절대 Y 유지'));
     for(const button of buttons)assert.ok(button.theme?.button,'explicit button theme');

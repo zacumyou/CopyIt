@@ -20,7 +20,7 @@ namespace CopyIt {
             internal CopyTool Tool;internal Camera Camera;internal Vector2 Mouse;internal Ray Ray;internal float Best;internal Entity Result;
             public bool Intersect(QuadTreeBoundsXZ bounds){var b=bounds.m_Bounds;return new Bounds((b.min+b.max)*.5f,b.max-b.min+new float3(8)).IntersectRay(Ray);}
             public void Iterate(QuadTreeBoundsXZ bounds,Entity entity){
-                if(!Tool.IsNetwork(entity)||(!Tool.IncludeUnderground&&Tool.IsUndergroundNetwork(entity)))return;
+                if(!Tool.IsNetwork(entity)||!Tool.MatchesView(entity)||(!Tool.IncludeUnderground&&Tool.IsUndergroundNetwork(entity)))return;
                 var curve=Tool.EntityManager.GetComponentData<Game.Net.Curve>(entity).m_Bezier;
                 var previous=Camera.WorldToScreenPoint(curve.a);
                 float threshold=12f*Screen.height/1080f;
