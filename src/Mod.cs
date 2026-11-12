@@ -16,8 +16,10 @@ namespace CopyIt
         internal static Settings Options;
         internal static bool Ready;
         private Locale en,ko;
-        // KO/EN: 1.6.2f1 (767.21d1), reviewed native placement and bulldozer contracts.
-        internal const string TestedGameHash = "AAEE15C4FA41C130ABAA1183840667E4FAAE531D67E8A9FA7536618EFFA2F86A";
+        // KO: 2026-11-12 배치·불도저 API 재검토. 기존 검토 빌드도 유지합니다.
+        // EN: Placement/bulldozer APIs reviewed 2026-11-12; retain the previous reviewed build.
+        internal const string TestedGameHash = "F076DF4B70AA0F21A80345E03A052CA2273BC6754F41DAB7E63D837837A43745";
+        internal const string PreviousGameHash = "AAEE15C4FA41C130ABAA1183840667E4FAAE531D67E8A9FA7536618EFFA2F86A";
         public void OnLoad(UpdateSystem updateSystem)
         {
             Diagnostics.Start();
@@ -34,7 +36,7 @@ namespace CopyIt
                 using(var sha=SHA256.Create()) using(var stream=File.OpenRead(typeof(Game.Tools.ToolSystem).Assembly.Location))
                     hash=BitConverter.ToString(sha.ComputeHash(stream)).Replace("-","");
                 Diagnostics.Event("game.compatibility", hash);
-                if(hash!=TestedGameHash) throw new InvalidOperationException($"Game DLL changed; Copy It targets 1.6.2f1 and needs compatibility review. Expected {TestedGameHash}, actual {hash}.");
+                if(hash!=TestedGameHash && hash!=PreviousGameHash) throw new InvalidOperationException($"Game DLL changed; Copy It needs compatibility review. Reviewed {TestedGameHash} or {PreviousGameHash}, actual {hash}.");
                 updateSystem.UpdateAt<CopyVisibilityRefreshSystem>(SystemUpdatePhase.ToolUpdate);
                 updateSystem.UpdateBefore<CopyVisibilitySystem>(SystemUpdatePhase.ModificationEnd);
                 updateSystem.UpdateAt<CopyTool>(SystemUpdatePhase.ToolUpdate);

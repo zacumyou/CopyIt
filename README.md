@@ -1,10 +1,12 @@
-> Published source: **0.6.3**. See [CHANGELOG.md](CHANGELOG.md) for the matching Paradox Mods update.
+> Published source: **0.6.4**. See [CHANGELOG.md](CHANGELOG.md) for the matching Paradox Mods update.
 
 # Copy It / 복사해!
 
 Cities: Skylines II code mod for copying selected objects, networks and surfaces.
 
 [한국어 모드 소개](모드%20소개글.ko.md) · [검증 및 테스트](TESTING.ko.md) · [개발 이력](README.ko.md)
+
+Current release: **0.6.4**, reviewed for game **1.6.4f1**. See [compatibility review](COMPATIBILITY.md) and [changelog](CHANGELOG.md).
 
 ## Requirements / 요구 사항
 

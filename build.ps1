@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 Push-Location $PSScriptRoot
 try {
     New-Item -ItemType Directory -Path .\research -Force | Out-Null
@@ -6,6 +6,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'C# build failed. See research/build.log.' }
     dotnet run --project .\tests\CopyIt.Tests.csproj -c Release *> .\research\tests.log
     if ($LASTEXITCODE -ne 0) { throw 'Policy tests failed. See research/tests.log.' }
+    dotnet run --project .\settings-tests\SettingsTests.csproj -c Release *> .\research\settings-tests.log
+    if ($LASTEXITCODE -ne 0) { throw 'Settings tests failed. See research/settings-tests.log.' }
     dotnet run --project .\slope-tests\SlopeTests.csproj -c Release *> .\research\slope-tests.log
     if ($LASTEXITCODE -ne 0) { throw 'Decal slope tests failed.' }
     Push-Location ui
