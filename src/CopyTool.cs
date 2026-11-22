@@ -145,6 +145,7 @@ namespace CopyIt
             samples.Clear();sampleCandidates.Clear();filterClicks.Reset();Eyedropper=false;ResetRegion(); ResetRotation(); shortcutRequested=false;
             pressed=false; Copying=false; CanPlace=false; previewExists=false; appliedLastFrame=false;placeRequested=false;
             clipboard.Clear(); selected.Clear(); hover=Entity.Null; SyncHighlights();
+            moveItSelection=null;moveItError=null;
             applyMode=ApplyMode.Clear;
             if(ownsPreview)
             {
@@ -174,6 +175,9 @@ namespace CopyIt
                 case "delete": RequestDeletion();break;
                 case "cancel": CancelCopy(); break;
                 case "clear": if(!Copying) {sampleCandidates.Clear();Eyedropper=false;ResetRegion();selected.Clear(); SyncHighlights(); Status=L10n.Message("CopyIt.Text.9AC3A0BEBB");} break;
+                case "rotation.reset":
+                    if (Copying && !GizmoHeld) { ResetRotationDrag(); SetAngle(0f, "reset"); }
+                    break;
                 case "height.snap": GroundSnap=true;Absolute=false;dirty=true;placeRequested=false;CanPlace=false;Diagnostics.Event("height.mode","terrain.per-object");break;
                 case "height.terrain": GroundSnap=false;Absolute=false;dirty=true;placeRequested=false;CanPlace=false;Diagnostics.Event("height.mode","terrain.group.minimum");break;
                 case "height": GroundSnap=false;Absolute=!Absolute; dirty=true; placeRequested=false;CanPlace=false; Diagnostics.Event("height.mode",Absolute?"absolute":"terrain.group.minimum"); break;
@@ -348,6 +352,7 @@ namespace CopyIt
             if(HandleCancel())return;
             if(!m_HasFocus) {ResetRegion();ResetRotationDrag();pressed=false; CanPlace=false;placeRequested=false;return;}
             if(shortcutRequested) {shortcutRequested=false;BeginCopy();}
+            if(moveItSelection!=null)ImportMoveItSelection();
             if(!Game.Input.InputManager.instance.controlOverWorld) {ResetRotationDrag(); if(pressed){pressed=false;ResetRegion();} CanPlace=false;placeRequested=false;return;}
             bool hit=GetRaycastResult(out Entity entity,out RaycastHit ray);
             if(Copying)
@@ -493,10 +498,11 @@ namespace CopyIt
                 using(var everyTemp=allTemps.ToEntityArray(Allocator.Temp)) foreach(var entity in everyTemp)
                 {
                     var t=EntityManager.GetComponentData<Temp>(entity);
-                    if(previewNetworks.Length>0 && t.m_Original!=Entity.Null && (EntityManager.HasComponent<Game.Net.Edge>(entity)||EntityManager.HasComponent<Game.Net.Node>(entity)) && !UnchangedNetworkReference(entity,t))
+                    if(t.m_Original!=Entity.Null && (EntityManager.HasComponent<Game.Net.Edge>(entity)||EntityManager.HasComponent<Game.Net.Node>(entity)))
                     {
+                        if(UnchangedNetworkReference(entity,t,out var reason))continue;
                         placementBlockReason=L10n.Message("CopyIt.Text.F60301C3C7");
-                        NetworkIssue($"existing network changed: entity={entity} original={t.m_Original} flags={t.m_Flags}");
+                        NetworkIssue($"existing network changed: entity={entity} original={t.m_Original} flags={t.m_Flags} reason={reason}");
                         return false;
                     }
                     if(t.m_Original!=Entity.Null && (t.m_Flags&(TempFlags.Delete|TempFlags.Modify|TempFlags.Replace))!=0) {placementBlockReason=L10n.Message("CopyIt.Text.F23EA9C557");return false;}

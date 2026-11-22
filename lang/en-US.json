@@ -86,5 +86,11 @@
   "CopyIt.Text.39245CBCA7": "{0} / 32 vertices · Right-click to undo the last point",
   "CopyIt.Text.894EAEF552": "{0}{1} highlighted inside the area",
   "CopyIt.Text.96BC626612": "Rotation",
-  "CopyIt.Text.C4F910C0D1": "Right-drag"
+  "CopyIt.Text.C4F910C0D1": "Right-drag",
+  "CopyIt.MoveIt.Unavailable": "Could not read the Move It selection. Select the objects in Copy It.",
+  "CopyIt.MoveIt.Unsupported": "The selection includes unsupported items. Select objects or segments instead of nodes or control points.",
+  "CopyIt.MoveIt.Limit": "More than 256 objects selected. Reduce the selection.",
+  "CopyIt.UI.TypeList": "Object types",
+  "CopyIt.UI.HeightMode": "Height mode",
+  "CopyIt.UI.ResetRotation": "Reset rotation"
 }

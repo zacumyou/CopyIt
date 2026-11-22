@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup><Configurations>Debug;Release</Configurations><Version>0.6.4</Version><AssemblyName>CopyIt</AssemblyName><RootNamespace>CopyIt</RootNamespace><AssemblyTitle>Copy It</AssemblyTitle></PropertyGroup>
+  <PropertyGroup><Configurations>Debug;Release</Configurations><Version>0.6.6</Version><AssemblyName>CopyIt</AssemblyName><RootNamespace>CopyIt</RootNamespace><AssemblyTitle>Copy It</AssemblyTitle></PropertyGroup>
   <Import Project="$(CSII_TOOLPATH)\Mod.props" />
   <Import Project="$(CSII_TOOLPATH)\Mod.targets" />
   <PropertyGroup>

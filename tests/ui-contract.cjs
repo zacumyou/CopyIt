@@ -5,7 +5,7 @@ const path=require('node:path');
 const React=require('../ui/node_modules/react');
 const {renderToStaticMarkup}=require('../ui/node_modules/react-dom/server');
 let values={active:false,copying:false,absolute:false,box:false,count:0,filters:7,canPlace:false,status:'ready',rectangle:''};
-let commands=[],buttons=[];
+let commands=[],buttons=[],heightItems=[];
 const labelOf=x=>x['aria-label']??(typeof x.children==='string'?x.children:x.children?.props?.children);
 const NativeButton=props=>{buttons.push(props);return React.createElement('button',{disabled:props.disabled,'data-selected':props.selected},props.children);};
 const locale=require('../lang/ko-KR.json');
@@ -13,6 +13,7 @@ global.window={'cs2/l10n':{useLocalization:()=>({translate:(id,fallback)=>locale
     bindValue:(group,key,initial)=>({group,key,initial}),useValue:binding=>values[binding.key]??binding.initial,
     trigger:(...args)=>commands.push(args)
 },'cs2/ui':{
+    Dropdown:p=>{heightItems=p.content.map(item=>item.props);return p.children;}, DropdownToggle:p=>p.children, DropdownItem:()=>null,
     Button:NativeButton,FloatingButton:NativeButton,
     Panel:props=>React.createElement('section',null,props.header,props.children),
     PanelSection:props=>React.createElement('div',null,props.children),
@@ -45,9 +46,18 @@ global.window={'cs2/l10n':{useLocalization:()=>({translate:(id,fallback)=>locale
     values.count=2;render();buttons.find(x=>labelOf(x)==='스포이드').onSelect();assert.deepEqual(commands.pop(),['CopyIt','command','eyedropper']);copy=buttons.find(x=>labelOf(x)==='복사 · Ctrl+C');assert.equal(copy.disabled,false);
     copy.onSelect();assert.deepEqual(commands.pop(),['CopyIt','command','copy']);
     values.copying=true;values.angle=27;html=render();assert.ok(html.includes('오브젝트 복사'));assert.ok(!html.includes('박스 선택'));assert.ok(/<b[^>]*>27\.0°<\/b>/.test(html),'angle and degree form one text node');
-    const absolute=buttons.find(x=>labelOf(x)==='절대값 기준');absolute.onSelect();assert.deepEqual(commands.pop(),['CopyIt','command','height']);
-    buttons.find(x=>labelOf(x)==='지형에 붙이기').onSelect();assert.deepEqual(commands.pop(),['CopyIt','command','height.snap']);
-    values.absolute=true;values.canPlace=true;html=render();assert.ok(!html.includes('1.5 /'));assert.ok(html.includes('반복 배치 가능'));
+    const reset=buttons.find(x=>labelOf(x)==='회전 초기화');assert.equal(reset.disabled,false);reset.onSelect();assert.deepEqual(commands.pop(),['CopyIt','command','rotation.reset']);
+    values.angle=0;render();assert.equal(buttons.find(x=>labelOf(x)==='회전 초기화').disabled,true);
+    assert.equal(buttons.find(x=>labelOf(x)==='높이 기준')['aria-expanded'],false);
+    const originalState=React.useState;
+    React.useState=initial=>initial===false?[true,()=>{}]:originalState(initial);
+    try {
+        render();
+        for(const [name,value] of [['절대값 기준','height'],['지형에 붙이기','height.snap']]){
+            buttons.find(x=>labelOf(x)===name).onSelect();assert.deepEqual(commands.pop(),['CopyIt','command',value]);
+        }
+    } finally {React.useState=originalState;}
+    values.absolute=true;values.canPlace=true;html=render();assert.ok(!html.includes('1.5 /'));assert.ok(!html.includes('반복 배치 가능'));
     values.copying=false;values.rectangle='10,20,30,40';html=render();assert.ok(html.includes('left:10%;top:20%;width:30%;height:40%'));
     values.selectionMode=2;values.polygonCount=3;values.polygon='10,10;30,10;20,30';html=render();assert.ok(html.includes('rotate('));
     buttons.find(x=>labelOf(x)==='선택 완료').onSelect();assert.deepEqual(commands.pop(),['CopyIt','command','finish']);

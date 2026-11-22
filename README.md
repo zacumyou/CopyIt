@@ -1,4 +1,4 @@
-> Published source: **0.6.4**. See [CHANGELOG.md](CHANGELOG.md) for the matching Paradox Mods update.
+> Published source: **0.6.6**. See [CHANGELOG.md](CHANGELOG.md) for the matching Paradox Mods update.
 
 # Copy It / 복사해!
 

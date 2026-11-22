@@ -350,5 +350,29 @@
   "CopyIt.Text.C4F910C0D1": {
     "ko": "우클릭 드래그",
     "en": "Right-drag"
+  },
+  "CopyIt.MoveIt.Unavailable": {
+    "ko": "Move It 선택을 읽지 못했습니다. Copy It에서 다시 선택해 주세요.",
+    "en": "Could not read the Move It selection. Select the objects in Copy It."
+  },
+  "CopyIt.MoveIt.Unsupported": {
+    "ko": "복사할 수 없는 대상이 포함되어 있습니다. 노드·제어점 대신 오브젝트나 구간을 선택해 주세요.",
+    "en": "The selection includes unsupported items. Select objects or segments instead of nodes or control points."
+  },
+  "CopyIt.MoveIt.Limit": {
+    "ko": "선택이 256개를 넘습니다. 선택 범위를 줄여 주세요.",
+    "en": "More than 256 objects selected. Reduce the selection."
+  },
+  "CopyIt.UI.TypeList": {
+    "ko": "선택할 유형",
+    "en": "Object types"
+  },
+  "CopyIt.UI.HeightMode": {
+    "ko": "높이 기준",
+    "en": "Height mode"
+  },
+  "CopyIt.UI.ResetRotation": {
+    "ko": "회전 초기화",
+    "en": "Reset rotation"
   }
 }

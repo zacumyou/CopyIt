@@ -16,7 +16,8 @@ namespace CopyIt
         {
             if(GizmoHeld)return;
             Diagnostics.Event("shortcut.copy",Active?"copy selection":"enter selection tool");
-            if(!Active)Activate();else shortcutRequested=true;
+            if(!Active&&m_ToolSystem.activeTool?.toolID=="MoveItTool")EnterFromMoveIt();
+            else if(!Active)Activate();else shortcutRequested=true;
         }
         private quaternion Rotation(Item item)=>item.Decal?item.DecalRotation:math.mul(GizmoHeld?gizmoRotation:quaternion.RotateY(math.radians(angle)),item.Transform.m_Rotation);
         private void ResetRotation(){ResetRotationDrag();angle=0;}

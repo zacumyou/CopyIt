@@ -1,3 +1,9 @@
+# 0.6.6
+
+Move It에서 선택한 오브젝트를 Ctrl+C로 복사할 수 있습니다. 데코 넷레인이 기존 도로에 영향을 주지 않아도 배치가 차단되던 조건을 완화했습니다. 복사할 유형은 체크 목록에서, 높이 기준은 드롭다운에서 고르세요. 회전값 옆 버튼으로 원래 방향을 복원할 수 있습니다.
+
+Press Ctrl+C to copy a Move It selection. Decorative netlanes can now be placed in more locations without changing existing roads. Choose object types from a checklist and height mode from a dropdown. Reset the preview to its original orientation with the button beside Rotation.
+
 # 0.6.4
 
 Cities: Skylines II 1.6.4f1 호환성: 현재 배치·불도저 API를 검토하고 Game.dll 변경으로 기능 초기화가 중단되던 문제를 수정했습니다. 이전 검토 빌드와 미검토 빌드 보호 차단은 유지합니다.

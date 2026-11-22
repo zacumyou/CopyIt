@@ -60,7 +60,7 @@ namespace CopyIt
             deleting.Update(tool.Deleting);includeUnderground.Update(tool.IncludeUnderground);
             selectionMode.Update(tool.SelectionMode);polygonCount.Update(tool.PolygonCount);previewCount.Update(tool.PreviewCount);searching.Update(tool.Searching);polygon.Update(tool.PolygonPath());angle.Update(tool.Angle);
             groundSnap.Update(tool.GroundSnap);assetFilter.Update(tool.AssetFilterActive);assetFilterName.Update(tool.AssetFilterName);eyedropper.Update(tool.Eyedropper);compact.Update(tool.Compact);active.Update(tool.Active);copying.Update(tool.Copying);absolute.Update(tool.Absolute);box.Update(tool.Box);
-            canPlace.Update(tool.CanPlace);count.Update(tool.Copying?tool.ClipboardCount:tool.Count);filters.Update(tool.Filters);status.Update(tool.Status);
+            canPlace.Update(tool.CanPlace);count.Update(tool.Copying?tool.ClipboardCount:tool.Count);filters.Update(tool.Filters);status.Update(tool.PanelStatus);
             if(tool.Dragging)
             {
                 var a=tool.DragStart;var b=(Vector2)InputManager.instance.mousePosition;

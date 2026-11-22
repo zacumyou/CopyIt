@@ -1,5 +1,6 @@
 // KO: 화면은 바인딩을 표시하고 명령을 보냅니다. 엔티티를 직접 다루지 않습니다.
 // EN: UI renders bindings and sends commands; it never mutates game entities directly.
+import './panel-layout.js';
 import React, { useEffect, useState, useRef } from "react";
 import { ModRegistrar } from "cs2/modding";
 import { bindValue, trigger, useValue } from "cs2/api";
@@ -48,6 +49,25 @@ const preview$ = bindValue<number>("CopyIt", "previewCount", 0), searching$ = bi
 const status$ = bindValue<string>("CopyIt", "status", ""), rectangle$ = bindValue<string>("CopyIt", "rectangle", "");
 const polygon$ = bindValue<string>("CopyIt", "polygon", ""), angle$ = bindValue<number>("CopyIt", "angle", 0);
 const command = (value: string) => trigger("CopyIt", "command", value);
+const heightModes = [["height.terrain","지형 기준"], ["height","절대값 기준"], ["height.snap","지형에 붙이기"]] as const;
+function HeightPicker({current}:{current:string}) {
+    const t = useText();
+    const [open,setOpen] = useState(false);
+    const label = heightModes.find(([value]) => value === current)![1];
+    return <div className={styles.heightRow}>
+        <span>{t("높이 기준")}</span>
+        <div className={styles.heightColumn}>
+            <Button theme={{button:styles.heightToggle}} aria-expanded={open} aria-label={t("높이 기준")} onSelect={() => setOpen(!open)}>
+                <span className={styles.heightLabel}>{t(label)}</span>
+                <svg className={styles.heightArrow} viewBox="0 0 12 8" aria-hidden="true"><path fill="#eef3fa" d={open ? "m1 7 5-6 5 6Z" : "m1 1 5 6 5-6Z"}/></svg>
+            </Button>
+            {open && <div className={styles.heightMenu}>{heightModes.map(([value,name]) =>
+                <Button key={value} theme={{button:styles.heightItem}} aria-label={t(name)} aria-pressed={current === value} className={current === value ? styles.heightSelected : undefined}
+                    onSelect={() => {if (current !== value) command(value); setOpen(false);}}>{t(name)}</Button>
+            )}</div>}
+        </div>
+    </div>;
+}
 const buttonTheme = { button: styles.button };
 const panelTheme = { panel: styles.panel, header: styles.header, titleBar: styles.titleBar, title: styles.title, iconSpace: styles.iconSpace, content: styles.panelContent, closeButton: styles.closeButton };
 const labelIcons: Record<string, string> = { "건물": buildingIcon, "프롭": propIcon, "나무": treeIcon, "도로": roadIcon, "도로 외 경로": pathsIcon, "스포이드": eyedropperIcon, "넷레인": laneIcon, "데칼": decalIcon, "표면": surfaceIcon, "클릭 선택": clickIcon, "박스 선택": boxIcon, "다각형 선택": polygonIcon, "지형 기준": terrainIcon, "지형에 붙이기": groundSnapIcon, "절대값 기준": absoluteIcon, "복사 · Ctrl+C": icon, "선택 삭제": deleteIcon, "선택 해제": clearIcon, "선택 완료": finishIcon, "복사 취소 · Esc": closeIcon };
@@ -73,6 +93,7 @@ function PolygonOverlay({ path }: {
         })}</div>;
 }
 const CopyPanel = () => {
+ React.useLayoutEffect(()=>{const node=document.querySelector('[data-copy-panel]'); window.csPanelLayoutV1.add(node); window.csPanelLayoutV1.moved(node);});
     const t=useText();
     const deleting = useValue(deleting$);
     const underground = useValue(underground$);
@@ -98,6 +119,7 @@ const CopyPanel = () => {
         const panel = (e.currentTarget as HTMLElement).closest('[data-copy-panel]') as HTMLElement;
         if (!panel)
             return;
+        window.csPanelLayoutV1.drag(panel);
         const rect = panel.getBoundingClientRect();
         drag.current = { x: e.clientX, y: e.clientY, left: rect.left, top: rect.top, width: rect.width, height: rect.height };
         setPosition({ x: rect.left, y: rect.top });
@@ -110,19 +132,20 @@ const CopyPanel = () => {
         if (!dragging)
             return;
         const move = (e: MouseEvent) => { const d = drag.current; if (d)
-            setPosition({ x: Math.max(0, Math.min(window.innerWidth - d.width, d.left + e.clientX - d.x)), y: Math.max(0, Math.min(window.innerHeight - 40, d.top + e.clientY - d.y)) }); };
+            setPosition({ x: Math.max(0, Math.min(window.innerWidth - d.width, d.left + e.clientX - d.x)), y: Math.max(0, Math.min(window.innerHeight - d.height, d.top + e.clientY - d.y)) }); };
         const end = () => { drag.current = null; setDragging(false); trigger("CopyIt", "diagnostic", "panel.drag.end"); };
         window.addEventListener('mousemove', move);
         window.addEventListener('mouseup', end);
         window.addEventListener('blur', end);
         return () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', end); window.removeEventListener('blur', end); };
     }, [dragging]);
-    const dragStyle: React.CSSProperties = { ...(position ? { left: position.x, top: position.y, right: 'auto' } : {}), ...(dragging ? { transform: 'scale(0.97)', backgroundColor: '#23292e' } : {}) };
+    const dragStyle: React.CSSProperties = { ...(position ? { left: position.x, top: position.y, right: 'auto' } : {}), ...(dragging ? { backgroundColor: '#232b36' } : {}) };
     const compact = useValue(compact$);
     const active = useValue(active$), copying = useValue(copying$), absolute = useValue(absolute$), mode = useValue(mode$);
+    const currentHeight = groundSnap ? "height.snap" : absolute ? "height" : "height.terrain";
     const count = useValue(count$), filters = useValue(filters$), canPlace = useValue(canPlace$), status = useValue(status$);
     const rectangle = useValue(rectangle$), polygon = useValue(polygon$), vertices = useValue(vertices$), preview = useValue(preview$), searching = useValue(searching$), angle = useValue(angle$);
-    useEffect(() => { trigger("CopyIt", "diagnostic", "UI mounted 0.6.3"); }, []);
+    useEffect(() => { trigger("CopyIt", "diagnostic", "UI mounted 0.6.6"); }, []);
     if (!active)
         return null;
     const rect = rectangle.split(",").map(Number);
@@ -137,29 +160,33 @@ const CopyPanel = () => {
             <Tooltip tooltip={t("닫기")}><Button theme={buttonTheme} className={styles.compactClose} aria-label={t("닫기")} onSelect={() => command("toggle")}><img className={styles.typeIcon} src={closeIcon} alt=""/></Button></Tooltip>
         </div> : <Panel data-copy-panel="true" style={dragStyle} onMouseDown={e => { const target = e.target as HTMLElement; if (target.closest(`.${styles.header}`) && !target.closest("button,[role=button]"))
             beginDrag(e); }} theme={panelTheme} header={<div className={styles.headerRow}><img className={styles.dragGrip} src={gripIcon} alt="" aria-hidden="true" draggable={false}/><div className={styles.headerText}><div className={styles.eyebrow}>COPY IT</div><div className={styles.heading}>{copying ? t("오브젝트 복사") : t("오브젝트 선택")}</div></div><Tooltip tooltip={t("패널 접기")}><Button theme={buttonTheme} className={styles.foldButton} aria-label={t("패널 접기")} onSelect={() => command("compact")}><img className={styles.typeIcon} src={collapseIcon} alt=""/></Button></Tooltip></div>} onClose={() => command("toggle")}>
-            <div className={styles.content}>
+            <div className={copying ? styles.copyContent : styles.content}>
                 <div className={styles.summary}><span>{copying ? t("복사할 오브젝트") : t("선택한 오브젝트")}</span><span className={styles.count}><span>{count}</span><span className={styles.unit}>{t("개")}</span></span></div>
                 {!copying && <div className={styles.selectionTools}>
                     <span className={styles.toolCaption}>{t("에셋 선택 도구")}</span>
-                    <Tooltip tooltip={t("스포이드: 에셋들을 차례로 클릭해 추가 · 선택 방식 버튼으로 완료")}><Button theme={buttonTheme} className={`${styles.eyedropperButton} ${eyedropper ? styles.methodSelected : ""}`} selected={eyedropper} aria-label={t("스포이드")} onSelect={() => command("eyedropper")}><img className={styles.typeIcon} src={eyedropperIcon} alt=""/></Button></Tooltip>
+                    <Tooltip tooltip={t("스포이드")}><Button theme={buttonTheme} className={`${styles.eyedropperButton} ${eyedropper ? styles.methodSelected : ""}`} selected={eyedropper} aria-label={t("스포이드")} onSelect={() => command("eyedropper")}><img className={styles.typeIcon} src={eyedropperIcon} alt=""/></Button></Tooltip>
                 </div>}
                 {!copying && assetFilter && <div className={styles.assetFilterBar}><Tooltip tooltip={assetName}><span className={styles.assetName}>{t("에셋 목록: {0}", assetName)}</span></Tooltip><Tooltip tooltip={t("에셋 필터 해제")}><Button theme={buttonTheme} className={styles.eyedropperButton} aria-label={t("에셋 필터 해제")} onSelect={() => command("assetFilter.clear")}><img className={styles.typeIcon} src={closeIcon} alt=""/></Button></Tooltip></div>}
                 {!copying && <div className={styles.section}>
                     <div className={`${styles.row} ${styles.selectionMethods}`}>{["클릭 선택", "박스 선택", "다각형 선택"].map((label, index) => <Choice key={label} selectionMethod selected={mode === index} onSelect={() => command(["click", "box", "polygon"][index])}>{label}</Choice>)}</div>
-                    <div className={styles.row}>{["건물", "프롭", "나무"].map((label, index) => <Choice key={label} selected={!!(filters & typeBits[index])} onSelect={() => command(["buildings", "props", "trees"][index])}>{label}</Choice>)}</div>
-                    <div className={styles.row}>{[3, 4].map(index => <Choice key={typeLabels[index]} selected={!!(filters & typeBits[index])} onSelect={() => command(typeCommands[index])}>{typeLabels[index]}</Choice>)}</div><div className={styles.row}>{[5, 6, 7].map(index => <Choice key={typeLabels[index]} selected={!!(filters & typeBits[index])} onSelect={() => command(typeCommands[index])}>{typeLabels[index]}</Choice>)}</div>
-                    <div className={styles.row}><Choice selected={underground} onSelect={() => command("underground.include")}>{"지하 포함"}</Choice><Choice selected={!underground} onSelect={() => command("underground.exclude")}>{"지하 제외"}</Choice></div>
-                    <p className={styles.hint}>{t("도로·경로·넷레인 복사: 실험 기능 · 최대 64구간")}</p>
-                    <p className={styles.hint}>{mode === 2 ? t("클릭으로 꼭짓점 추가 · 첫 점 / Enter로 완료") : t("Shift로 선택 추가 · 최대 256개")}</p>
+                    <div className={styles.groupLabel}>{t("선택할 유형")}</div>
+                    <div className={styles.checkList}>{typeLabels.map((label, index) => {
+                        const checked = !!(filters & typeBits[index]);
+                        return <Button key={label} theme={buttonTheme} className={styles.checkRow} role="checkbox" aria-checked={checked} aria-label={t(label)} onSelect={() => command(typeCommands[index])}>
+                            <span className={styles.checkContents}><img src={typeIcons[index]} className={styles.typeIcon} alt=""/><span className={styles.checkText}>{t(label)}</span>
+                            <span aria-hidden="true" className={checked ? styles.checked : styles.emptyCheck}>{checked && <svg width="12" height="12" viewBox="0 0 12 12"><path d="m2 6 2.5 2.5L10 3" fill="none" stroke="#fff" strokeWidth="2"/></svg>}</span></span>
+                        </Button>;
+                    })}</div>
+                    <div className={`${styles.row} ${styles.settingsRow}`}><Choice selected={underground} onSelect={() => command("underground.include")}>{"지하 포함"}</Choice><Choice selected={!underground} onSelect={() => command("underground.exclude")}>{"지하 제외"}</Choice></div>
                     {mode === 2 && <div className={styles.polygonActions}><span>{t("{0} / 32점 · 우클릭 한 점 취소", vertices)}</span><Button style={{ fontFamily: '"Noto Sans KR"' }} theme={buttonTheme} disabled={vertices < 3} onSelect={() => command("finish")}><ButtonLabel>{"선택 완료"}</ButtonLabel></Button></div>}
                     {(rectangle || polygon || searching) && <p className={styles.live}>{t("{0}영역 안 {1}개 강조", searching ? t("후보 검색 중 · ") : "", preview)}</p>}
                 </div>}
-                <div className={styles.section}><div className={styles.row}><Choice selected={!absolute && !groundSnap} onSelect={() => command("height.terrain")}>{"지형 기준"}</Choice><Choice selected={absolute} onSelect={() => !absolute && command("height")}>{"절대값 기준"}</Choice></div><div className={styles.row}><Choice selected={groundSnap} onSelect={() => command("height.snap")}>{"지형에 붙이기"}</Choice></div></div>
-                {copying && <div className={styles.rotation}><span>{t("회전")}<b className={styles.angleValue}>{`${angle.toFixed(1)}°`}</b></span><p className={styles.hint}>{t("우클릭 드래그")}</p></div>}
+                <HeightPicker key={copying ? "copy" : "select"} current={currentHeight}/>
+                {copying && <div className={styles.rotation}><span><span className={styles.rotationLabel}>{t("회전")}<Tooltip tooltip={t("회전 초기화")}><Button theme={buttonTheme} className={styles.rotationReset} aria-label={t("회전 초기화")} disabled={angle === 0} onSelect={() => command("rotation.reset")}><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 8a6.3 6.3 0 1 1 .4 5M4 3v5h5" fill="none" stroke="#eef3fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></Button></Tooltip></span><b className={styles.angleValue}>{`${angle.toFixed(1)}°`}</b></span></div>}
                 {!copying && <Tooltip tooltip={t("선택한 오브젝트와 소속 부속 요소를 삭제합니다. 되돌리기는 지원하지 않습니다.")}><Button theme={buttonTheme} className={styles.deleteButton} disabled={deleting || count === 0 || vertices > 0 || searching} onSelect={() => command("delete")}><ButtonLabel>{"선택 삭제"}</ButtonLabel></Button></Tooltip>}
                 <div className={styles.actions}>{copying ? <Button style={{ fontFamily: '"Noto Sans KR"' }} theme={buttonTheme} onSelect={() => command("cancel")}><ButtonLabel>{"복사 취소 · Esc"}</ButtonLabel></Button> : <><Button style={{ fontFamily: '"Noto Sans KR"' }} theme={buttonTheme} className={styles.primary} disabled={count === 0 || vertices > 0 || searching} onSelect={() => command("copy")}><ButtonLabel>{"복사 · Ctrl+C"}</ButtonLabel></Button><Button style={{ fontFamily: '"Noto Sans KR"' }} theme={buttonTheme} disabled={count === 0 && vertices === 0} onSelect={() => command("clear")}><ButtonLabel>{"선택 해제"}</ButtonLabel></Button></>}</div>
-                {copying && <p className={styles.live}>{canPlace ? t("클릭하여 배치 · 반복 배치 가능") : t("위치를 지정하세요")}</p>}
-                <p className={styles.status}>{t(status)}</p>
+                
+                {status && <p role="status" className={styles.status}>{t(status)}</p>}
             </div>
         </Panel>}
     </>;

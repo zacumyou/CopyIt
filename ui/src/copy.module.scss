@@ -1,107 +1,105 @@
-﻿/* KO: 게임 내 Coherent UI의 폰트/포인터 규칙을 유지합니다. EN: Preserve Coherent UI font and pointer rules. */
-.panel { pointer-events:auto; z-index:100; position:absolute; top:140rem; right:28rem; width:354rem; color:rgba(246,247,248,0.94); background-color:rgba(18,21,23,0.84); border:1rem solid rgba(255,255,255,0.12); border-radius:10rem; overflow:hidden; font-size:13rem; box-shadow:0 8rem 26rem rgba(0,0,0,0.22); }
-.header,.titleBar { background-color:rgba(35,41,46,0.97); }
-.titleBar { display:flex; align-items:center; padding:18rem 16rem; min-height:66rem; }
-.title { flex:1; color:#edf0f2; text-transform:none; }
-.panelContent { background-color:rgba(0,0,0,0); }
-.eyebrow { font-size:9rem; font-weight:700; letter-spacing:1.6rem; color:rgba(236,240,243,0.65); margin-bottom:5rem; }
-.heading { font-size:18rem; font-weight:700; line-height:1.2; }
-.closeButton { width:26rem; height:26rem; padding:6rem; margin-left:12rem; border:1rem solid rgba(226,135,141,0.3); border-radius:6rem; background-color:rgba(156,65,73,0.2); color:#eda5aa; }
-.closeButton:hover { background-color:rgba(156,65,73,0.4); }
-.closeButton > * { width:14rem; height:14rem; background-color:#eda5aa; }
-.content { padding:16rem; display:flex; flex-direction:column; }
-.summary { display:flex; justify-content:space-between; align-items:center; margin-bottom:6rem; color:rgba(240,242,245,0.7); font-size:12rem; }
-.count { color:#f3f5f6; font-size:22rem; font-weight:600; }
-.unit { font-size:12rem; font-weight:400; margin-left:5rem; opacity:0.65; }
-.section { padding:12rem 0; border-bottom:1rem solid rgba(255,255,255,0.09); }
-.row,.actions { display:flex; flex-direction:row; }
-.row + .row { margin-top:8rem; }
-.row > *,.actions > * { flex:1; }
-.row > * + *,.actions > * + * { margin-left:6rem; }
-.button { pointer-events:auto; cursor:pointer; font-family:"Noto Sans KR"; font-size:12rem; font-weight:400; line-height:1.2; text-align:center; color:rgba(242,244,247,0.8); background-color:rgba(255,255,255,0.035); background-image:none; border:1rem solid rgba(255,255,255,0.14); border-radius:5rem; padding:10rem 6rem; min-height:34rem; box-shadow:none; text-transform:none; }
-.button:hover { color:#fff; background-color:rgba(255,255,255,0.12); border-color:rgba(255,255,255,0.28); }
-.button.selected { color:#fff; background-color:rgba(221,229,236,0.16); border-color:rgba(232,239,246,0.36); }
-.button.primary { background-color:rgba(225,233,238,0.18); border-color:rgba(232,239,246,0.38); color:#fff; }
-.button:disabled { color:rgba(237,241,245,0.27); background-color:rgba(255,255,255,0.025); border-color:rgba(255,255,255,0.06); }
-.hint { font-size:11rem; line-height:1.5; color:rgba(230,235,240,0.52); margin:10rem 0 0; }
-.polygonActions { display:flex; align-items:center; justify-content:space-between; margin-top:10rem; font-size:10rem; color:rgba(230,235,240,0.58); }
-.polygonActions > .button { flex:0; min-width:76rem; padding:7rem; min-height:28rem; margin-left:8rem; }
-.rotation { padding:12rem 0; color:rgba(240,244,248,0.8); }
-.rotation b { margin-left:8rem; font-weight:500; }
-.actions { margin-top:16rem; }
-.live { color:rgba(235,240,246,0.78); font-size:11rem; line-height:1.5; margin:10rem 0 0; }
-.status { color:rgba(229,235,241,0.48); font-size:11rem; line-height:1.5; margin:12rem 0 0; }
-.marquee { position:absolute; border:1rem solid rgba(226,239,255,0.95); background-color:rgba(210,230,250,0.08); pointer-events:none; }
-.overlay { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; }
-.edge { position:absolute; height:1rem; transform-origin:0 50%; background-color:rgba(226,239,255,0.95); }
-.point,.firstPoint { position:absolute; width:6rem; height:6rem; margin-left:-3rem; margin-top:-3rem; border:1rem solid #f1f6ff; border-radius:3rem; background-color:#788c9b; }
-.firstPoint { width:10rem; height:10rem; margin-left:-5rem; margin-top:-5rem; border-radius:5rem; background-color:#d4e9fa; }
-
-/* Coherent buttons must use the locale font directly, including nested labels. */
-.panel { font-family:"Noto Sans KR"; }
-.button * { font-family:"Noto Sans KR"; font-weight:400; }
-
-
-.compact { position:absolute; top:140rem; right:28rem; display:flex; align-items:center; padding:7rem; background-color:rgba(18,21,23,.9); border:1rem solid rgba(255,255,255,.15); border-radius:8rem; pointer-events:auto; z-index:100; }
-.compact .button { width:34rem; height:34rem; min-height:34rem; padding:6rem; margin-left:4rem; flex-shrink:0; }
-.compact .button:first-child { margin-left:0; }
-.typeIcon { width:21rem; height:21rem; pointer-events:none; }
-.headerTools { display:flex; align-items:center; justify-content:space-between; }
-.headerTools .eyebrow { flex:1; }
-.headerTools .foldButton { padding:3rem; width:26rem; height:26rem; min-height:26rem; margin-left:10rem; margin-bottom:3rem; }
-.foldButton .typeIcon { width:18rem; height:18rem; }
-
-.buttonLabel { display:flex; align-items:center; justify-content:center; pointer-events:none; }
-.labelIcon { width:20rem; height:20rem; margin-right:5rem; flex-shrink:0; pointer-events:none; }
-.buttonLabel > span { white-space:nowrap; font-family:"Noto Sans KR"; }
-
-.rotation > span { display:flex; align-items:center; }
-.angleValue { white-space:nowrap; flex-shrink:0; }
-
-.headerRow { display:flex; align-items:center; }
-.headerText { flex:1; min-width:0; }
-.dragGrip { width:20rem; height:24rem; margin-right:12rem; flex-shrink:0; pointer-events:none; }
-
-/* Remove the native title bar's unused leading icon reservation. */
-.iconSpace { display:none; width:0; min-width:0; margin:0; padding:0; }
-.title { margin:0; padding:0; min-width:0; }
-.headerRow { width:100%; }
-.headerRow .foldButton { width:26rem; height:26rem; min-height:26rem; flex-shrink:0; margin:0 0 0 12rem; padding:3rem; }
-.closeButton { flex-shrink:0; align-self:center; }
-.dragGrip { margin-right:10rem; }
-.button.methodSelected { color:#e6f5ff; background-color:rgba(45,147,199,.27); border-color:rgba(105,203,251,.85); }
-.button.methodSelected:hover { background-color:rgba(45,147,199,.4); border-color:#a5e1ff; }
-.count { display:flex; align-items:center; line-height:1; }
-.unit { display:block; line-height:1; align-self:center; }
-
-.panel,.compact { transform-origin:top left; }
+/* Scoped Gameface panel: shared role sizes, no root font/zoom override. */
+.panel,.compact { font-family:"Noto Sans KR"; color:#eef3fa; pointer-events:auto; position:absolute; top:120rem; right:24rem; z-index:100; background-color:rgba(24,31,41,.96); border-radius:16rem; box-shadow:0 10rem 30rem rgba(0,0,0,.25); }
+.panel { box-sizing:border-box; width:380rem; max-width:94vw; max-height:84vh; overflow:hidden; font-size:14rem; display:flex; flex-direction:column; }
+.header,.titleBar { background-color:transparent; }
 .header { cursor:move; }
-.dragHandle { display:flex; align-items:center; justify-content:center; width:22rem; height:34rem; cursor:move; flex-shrink:0; }
-.dragHandle img { width:20rem; height:23rem; pointer-events:none; }
-
-.dragShield { position:fixed; top:0; left:0; width:100%; height:100%; z-index:99; pointer-events:auto; cursor:move; }
-
-.selectionTools { display:flex; align-items:center; justify-content:space-between; margin-top:10rem; padding-bottom:8rem; }
-.toolCaption { font-size:11rem; color:rgba(230,235,240,.6); }
-.eyedropperButton { width:30rem; height:30rem; min-height:30rem; padding:4rem; flex-shrink:0; }
-.assetFilterBar { display:flex; align-items:center; margin-top:8rem; padding:5rem 7rem; background-color:rgba(45,147,199,.15); border-radius:5rem; }
-.assetName { flex:1; min-width:0; font-size:11rem; color:#bce7ff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.assetFilterBar .eyedropperButton { margin-left:6rem; }
-
-.selectionMethods { padding-bottom:12rem; border-bottom:1rem solid rgba(255,255,255,.08); margin-bottom:12rem; }
-.compact .expandButton { background-color:rgba(45,147,199,.24); border-color:rgba(105,203,251,.5); }
-.compact .expandButton:hover { background-color:rgba(45,147,199,.4); }
-.compact .compactClose { background-color:rgba(156,65,73,.28); border-color:rgba(226,135,141,.5); }
-.compact .compactClose:hover { background-color:rgba(156,65,73,.48); }
-
-/* Active choices must retain a visible hover response in both panel layouts. */
-.button.selected:hover:not(:disabled),.button.primary:hover:not(:disabled) { color:#fff; background-color:rgba(235,243,250,.3); border-color:rgba(244,249,255,.72); }
-.button.methodSelected:hover:not(:disabled) { color:#fff; background-color:rgba(67,173,231,.5); border-color:#c1edff; }
-.deleteButton { width: 100%; margin-top: 12rem; color: #ffd4d4; background-color: rgba(115,45,45,.36); border-color: rgba(240,130,130,.45); }
-.deleteButton:hover { background-color: rgba(155,65,65,.55); }
-/* Allow translated labels to wrap within the existing panel width. */
-.row > .button { min-width:0; }
-.buttonLabel { min-width:0; max-width:100%; }
+.titleBar { display:flex; align-items:center; padding-top:20rem; padding-right:16rem; padding-bottom:12rem; padding-left:16rem; min-height:64rem; }
+.title { flex:1; min-width:0; margin:0; padding:0; text-transform:none; }
+.iconSpace { display:none; width:0; min-width:0; }
+.headerRow { display:flex; align-items:center; width:100%; }
+.headerText { flex:1; min-width:0; }
+.eyebrow { color:#93a1b5; font-size:10rem; font-weight:600; letter-spacing:1.3rem; margin-bottom:4rem; }
+.heading { font-size:20rem; font-weight:700; line-height:1.3; }
+.dragGrip { width:16rem; height:24rem; margin-right:10rem; opacity:.45; pointer-events:none; }
+.closeButton { width:28rem; height:28rem; min-width:28rem; margin-left:8rem; padding:6rem; background-color:transparent; border:0; border-radius:8rem; flex-shrink:0; align-self:center; }
+.closeButton > * { width:16rem; height:16rem; background-color:#d6dfeb; }
+.closeButton:hover { background-color:rgba(255,255,255,.1); }
+.panelContent { min-height:0; overflow-y:auto; background-color:transparent; }
+.content { padding-top:4rem; padding-right:16rem; padding-bottom:16rem; padding-left:16rem; max-height:68vh; overflow-y:auto; display:flex; flex-direction:column; }
+.summary { display:flex; align-items:center; justify-content:space-between; padding:8rem 0 12rem; color:#aebbcf; font-size:12rem; }
+.count { display:flex; align-items:center; color:#fff; font-size:22rem; font-weight:600; line-height:1; }
+.unit { margin-left:5rem; font-size:12rem; font-weight:400; color:#aebbcf; }
+.section { padding:10rem 0; }
+.row,.actions { display:flex; }
+.row + .row { margin-top:6rem; }
+.row > *,.actions > * { flex:1; min-width:0; }
+.row > * + *,.actions > * + * { margin-left:6rem; }
+.button { pointer-events:auto; cursor:pointer; font-family:"Noto Sans KR"; font-size:14rem; font-weight:400; line-height:1.3; color:#c6d1e1; background-color:#2d3746; background-image:none; border:0; border-radius:9rem; padding:9rem 8rem; min-height:36rem; box-shadow:none; text-transform:none; transition:background-color 140ms ease-out,color 140ms ease-out,opacity 140ms ease-out,transform 90ms ease-out; }
+.button * { font-family:"Noto Sans KR"; }
+.button:hover:not(:disabled) { color:#fff; background-color:#3b485c; }
+.button:active:not(:disabled) { transform:scale(.98); }
+.button:focus { outline:2rem solid #8fbcff; outline-offset:2rem; }
+.button.selected,.button.methodSelected { background-color:#64482f; color:#ffd5a6; }
+.button.selected:hover:not(:disabled),.button.methodSelected:hover:not(:disabled) { background-color:#805b37; color:#fff1df; }
+.button.primary { background-color:#418af7; color:#fff; font-weight:600; }
+.button.primary:hover:not(:disabled) { background-color:#64a1ff; }
+.button:disabled { opacity:.2; filter:grayscale(1); cursor:default; }
+.buttonLabel { display:flex; align-items:center; justify-content:center; min-width:0; max-width:100%; pointer-events:none; }
+.labelIcon { width:20rem; height:20rem; margin-right:6rem; flex-shrink:0; pointer-events:none; }
 .buttonLabel > span { min-width:0; white-space:normal; overflow-wrap:break-word; }
-/* KO: 비활성 아이콘은 실행 가능한 버튼과 구분합니다. EN: Dim icons only for disabled actions. */
-.button:disabled .labelIcon,.button:disabled .typeIcon { opacity:.3; }
+.typeIcon { width:20rem; height:20rem; pointer-events:none; }
+.selectionTools { display:flex; align-items:center; justify-content:space-between; margin-top:4rem; }
+.toolCaption { font-size:12rem; color:#aebbcf; }
+.eyedropperButton,.headerRow .foldButton { width:28rem; height:28rem; min-height:28rem; padding:4rem; flex-shrink:0; background-color:transparent; }
+.headerRow .foldButton { margin-left:8rem; }
+.selectionMethods { padding-bottom:12rem; margin-bottom:4rem; }
+.selectionMethods .button { background-color:transparent; border-radius:8rem 8rem 0 0; border-bottom:2rem solid #3d4858; }
+.selectionMethods .button.methodSelected { color:#ffd5a6; border-bottom-color:#f5a451; background-color:rgba(245,164,81,.1); }
+.assetFilterBar { display:flex; align-items:center; margin-top:8rem; padding:6rem 8rem; background-color:#263d58; border-radius:8rem; }
+.assetName { flex:1; min-width:0; color:#c5ddff; font-size:12rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.polygonActions { display:flex; align-items:center; justify-content:space-between; margin-top:8rem; color:#aebbcf; font-size:12rem; }
+.polygonActions .button { margin-left:8rem; }
+.rotation { padding:12rem 0; font-size:14rem; }
+.rotation > span { display:flex; align-items:center; justify-content:space-between; }
+.angleValue { white-space:nowrap; color:#fff; font-size:20rem; font-weight:600; }
+.actions { margin-top:12rem; }
+.deleteButton { align-self:flex-end; color:#e9a6aa; background-color:transparent; min-height:28rem; font-size:12rem; padding:4rem 6rem; }
+.deleteButton:hover:not(:disabled) { background-color:#50363f; color:#ffd9dc; }
+.live,.status { margin:10rem 0 0; font-size:12rem; line-height:1.5; color:#b9c7db; }
+.status { color:#edc79a; }
+.compact { display:flex; flex-wrap:wrap; align-items:center; max-width:94vw; padding:8rem; border-radius:12rem; }
+.compact .button { width:36rem; height:36rem; min-height:36rem; padding:8rem; margin-left:4rem; flex-shrink:0; }
+.compact .expandButton { background-color:#305485; color:#fff; }
+.compact .compactClose { background-color:transparent; }
+.dragHandle { display:flex; align-items:center; justify-content:center; width:20rem; height:36rem; cursor:move; flex-shrink:0; }
+.dragHandle img { width:16rem; height:24rem; opacity:.45; pointer-events:none; }
+.dragShield { position:fixed; top:0; left:0; width:100%; height:100%; z-index:99; pointer-events:auto; cursor:move; }
+.marquee { position:absolute; border:1rem solid #f5a451; background-color:rgba(245,164,81,.1); pointer-events:none; }
+.overlay { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; }
+.edge { position:absolute; height:1rem; transform-origin:0 50%; background-color:#f5a451; }
+.point,.firstPoint { position:absolute; width:6rem; height:6rem; margin-left:-3rem; margin-top:-3rem; border-radius:3rem; background-color:#f5a451; }
+.firstPoint { width:10rem; height:10rem; margin-left:-5rem; margin-top:-5rem; border-radius:5rem; }
+@media (prefers-reduced-motion: reduce) { .button { transition:none; } }
+
+.settingsRow .button.selected { background-color:#294d7d; color:#c8e0ff; }
+.settingsRow .button.selected:hover:not(:disabled) { background-color:#35629d; color:#fff; }
+
+.groupLabel { font-size:14rem; font-weight:600; margin-bottom:6rem; }
+.checkList { display:flex; flex-wrap:wrap; margin-bottom:10rem; }
+.button.checkRow { width:50%; box-sizing:border-box; display:flex; align-items:center; padding:6rem 8rem; min-height:34rem; background-color:transparent; border-radius:0; border-bottom:1rem solid #354150; }
+.checkRow img { margin-right:6rem; flex-shrink:0; }
+.checkContents { display:flex; align-items:center; width:100%; }
+.checkText { flex:1; min-width:0; text-align:left; }
+.heightArrow { width:12rem; height:8rem; flex-shrink:0; }
+.checked,.emptyCheck { margin-left:8rem; width:16rem; height:16rem; border:1rem solid #647182; border-radius:4rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.checked { background-color:#945b28; border-color:#eba15c; }
+.checked svg { width:12rem; height:12rem; }
+.heightRow { display:flex; align-items:center; justify-content:space-between; padding:12rem 0; border-top:1rem solid #455060; }
+.heightColumn { position:relative; width:148rem; display:flex; flex-direction:column; flex-shrink:0; }
+.heightRow { position:relative; z-index:2; align-items:flex-start; flex-shrink:0; }
+.heightRow > span { padding-top:8rem; }
+.heightToggle,.heightItem { box-sizing:border-box; display:flex; align-items:center; min-height:36rem; padding:6rem 12rem; font-family:"Noto Sans KR"; font-size:14rem; color:#eef3fa; background-image:none; }
+.heightToggle { justify-content:space-between; width:148rem; border:1rem solid #50657e; border-radius:8rem; background-color:#304055; }
+.heightLabel { flex:1; min-width:0; text-align:left; margin-right:8rem; }
+
+.heightMenu { position:absolute; bottom:100%; right:0; z-index:3; pointer-events:auto; box-sizing:border-box; width:148rem; padding:4rem; background-color:#202b39; border:1rem solid #50657e; border-radius:10rem; box-shadow:0 6rem 18rem rgba(0,0,0,.32); }
+.heightItem { width:100%; justify-content:flex-start; border:0; border-radius:6rem; background-color:transparent; }
+.heightToggle:hover,.heightItem:hover { background-color:#405268; }
+.heightItem.heightSelected { color:#e0eeff; background-color:#294d7d; }
+.heightItem.heightSelected:hover { background-color:#35629d; }
+.heightToggle:focus,.heightItem:focus { outline:2rem solid #8fbcff; outline-offset:-2rem; }
+.copyContent { @extend .content; } .copyContent .heightMenu { top:100%; bottom:auto; }
+
+.rotationLabel { display:flex; align-items:center; }
+.button.rotationReset { display:flex; align-items:center; justify-content:center; width:28rem; height:28rem; min-height:28rem; margin-left:6rem; padding:5rem; }
+.rotationReset svg { width:18rem; height:18rem; }

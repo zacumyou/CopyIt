@@ -197,39 +197,65 @@ namespace CopyIt
         }
         // KO: 네이티브 재생성용 참조는 실제 형상/연결이 그대로일 때만 허용합니다.
         // EN: Allow native regeneration references only when geometry and connectivity are unchanged.
-        private bool UnchangedNetworkReference(Entity entity,Temp temp)
+        private bool UnchangedNetworkReference(Entity entity,Temp temp,out string reason)
         {
+            reason="missing original";
             var original=temp.m_Original;
             if(!EntityManager.Exists(original)||EntityManager.HasComponent<Deleted>(original))return false;
-            if((temp.m_Flags&(TempFlags.Create|TempFlags.Delete|TempFlags.Modify|TempFlags.Replace|TempFlags.Combine|TempFlags.Upgrade|TempFlags.Duplicate))!=0)return false;
-            if(!SameNetworkComponent<PrefabRef>(entity,original)||!SameNetworkComponent<Owner>(entity,original)
-                ||!SameNetworkComponent<EditorContainer>(entity,original)||!SameNetworkComponent<Game.Net.Elevation>(entity,original)
-                ||!SameNetworkComponent<Game.Net.Upgraded>(entity,original)||!SameNetworkComponent<Game.Net.Curve>(entity,original)
-                ||!SameNetworkComponent<Game.Net.Node>(entity,original))return false;
+            reason="destructive flags";
+            if((temp.m_Flags&(TempFlags.Create|TempFlags.Delete|TempFlags.Replace|TempFlags.Combine|TempFlags.Duplicate))!=0)return false;
+            reason="prefab or container changed";
+            if(!SameNetworkComponent<PrefabRef>(entity,original)||!SameNetworkComponent<EditorContainer>(entity,original))return false;
+            reason="owner changed";
+            var ownerA=EntityManager.HasComponent<Owner>(entity)?OriginalNetworkEntity(EntityManager.GetComponentData<Owner>(entity).m_Owner):Entity.Null;
+            var ownerB=EntityManager.HasComponent<Owner>(original)?EntityManager.GetComponentData<Owner>(original).m_Owner:Entity.Null;
+            if(ownerA!=ownerB)return false;
+            reason="upgrade changed";
+            var upgradeA=EntityManager.HasComponent<Game.Net.Upgraded>(entity)?EntityManager.GetComponentData<Game.Net.Upgraded>(entity):default;
+            var upgradeB=EntityManager.HasComponent<Game.Net.Upgraded>(original)?EntityManager.GetComponentData<Game.Net.Upgraded>(original):default;
+            if(!upgradeA.Equals(upgradeB))return false;
+            // KO: 재계산된 노드 회전/곡선 길이는 배치 위험이 아닙니다. 실제 위치는 1cm까지 허용합니다.
+            // EN: Recomputed node rotation/curve length are harmless; allow up to 1cm positional drift.
+            reason="position, curve or elevation changed beyond 1cm";
+            if(!SameReferenceGeometry(entity,original))return false;
+            reason="endpoints changed";
             bool edge=EntityManager.HasComponent<Game.Net.Edge>(entity);
             if(edge!=EntityManager.HasComponent<Game.Net.Edge>(original))return false;
             if(edge){
                 var a=EntityManager.GetComponentData<Game.Net.Edge>(entity);var b=EntityManager.GetComponentData<Game.Net.Edge>(original);
                 if(OriginalNetworkEntity(a.m_Start)!=b.m_Start||OriginalNetworkEntity(a.m_End)!=b.m_End)return false;
             }
-            if(EntityManager.HasBuffer<Game.Net.ConnectedEdge>(entity)!=EntityManager.HasBuffer<Game.Net.ConnectedEdge>(original))return false;
-            if(EntityManager.HasBuffer<Game.Net.ConnectedEdge>(entity)){
-                var a=EntityManager.GetBuffer<Game.Net.ConnectedEdge>(entity,true);var b=EntityManager.GetBuffer<Game.Net.ConnectedEdge>(original,true);
+            reason="connected edges changed";
+            {
                 var expected=new List<Entity>();var actual=new List<Entity>();
-                for(int i=0;i<b.Length;i++)expected.Add(b[i].m_Edge);
-                for(int i=0;i<a.Length;i++)actual.Add(OriginalNetworkEntity(a[i].m_Edge));
+                if(EntityManager.HasBuffer<Game.Net.ConnectedEdge>(original))foreach(var entry in EntityManager.GetBuffer<Game.Net.ConnectedEdge>(original,true))expected.Add(entry.m_Edge);
+                if(EntityManager.HasBuffer<Game.Net.ConnectedEdge>(entity))foreach(var entry in EntityManager.GetBuffer<Game.Net.ConnectedEdge>(entity,true))actual.Add(OriginalNetworkEntity(entry.m_Edge));
                 if(!NetworkReferencePolicy.SameConnections(expected,actual))return false;
             }
-            if(EntityManager.HasBuffer<Game.Net.ConnectedNode>(entity)!=EntityManager.HasBuffer<Game.Net.ConnectedNode>(original))return false;
-            if(EntityManager.HasBuffer<Game.Net.ConnectedNode>(entity)){
-                var a=EntityManager.GetBuffer<Game.Net.ConnectedNode>(entity,true);var b=EntityManager.GetBuffer<Game.Net.ConnectedNode>(original,true);
-                var expected=new List<Game.Net.ConnectedNode>();var actual=new List<Game.Net.ConnectedNode>();
-                for(int i=0;i<b.Length;i++)expected.Add(b[i]);
-                for(int i=0;i<a.Length;i++){var node=a[i];node.m_Node=OriginalNetworkEntity(node.m_Node);actual.Add(node);}
+            reason="connected nodes changed";
+            {
+                var expected=new List<Entity>();var actual=new List<Entity>();
+                if(EntityManager.HasBuffer<Game.Net.ConnectedNode>(original))foreach(var entry in EntityManager.GetBuffer<Game.Net.ConnectedNode>(original,true))expected.Add(entry.m_Node);
+                if(EntityManager.HasBuffer<Game.Net.ConnectedNode>(entity))foreach(var entry in EntityManager.GetBuffer<Game.Net.ConnectedNode>(entity,true))actual.Add(OriginalNetworkEntity(entry.m_Node));
                 if(!NetworkReferencePolicy.SameConnections(expected,actual))return false;
             }
+            reason="";
             return true;
         }
+        private bool SameReferenceGeometry(Entity a,Entity b)
+        {
+            bool node=EntityManager.HasComponent<Game.Net.Node>(a),curve=EntityManager.HasComponent<Game.Net.Curve>(a);
+            if(node!=EntityManager.HasComponent<Game.Net.Node>(b)||curve!=EntityManager.HasComponent<Game.Net.Curve>(b))return false;
+            if(node&&!NearReferencePoint(EntityManager.GetComponentData<Game.Net.Node>(a).m_Position,EntityManager.GetComponentData<Game.Net.Node>(b).m_Position))return false;
+            if(curve){
+                var x=EntityManager.GetComponentData<Game.Net.Curve>(a).m_Bezier;var y=EntityManager.GetComponentData<Game.Net.Curve>(b).m_Bezier;
+                if(!NearReferencePoint(x.a,y.a)||!NearReferencePoint(x.b,y.b)||!NearReferencePoint(x.c,y.c)||!NearReferencePoint(x.d,y.d))return false;
+            }
+            var ea=EntityManager.HasComponent<Game.Net.Elevation>(a)?EntityManager.GetComponentData<Game.Net.Elevation>(a).m_Elevation:float2.zero;
+            var eb=EntityManager.HasComponent<Game.Net.Elevation>(b)?EntityManager.GetComponentData<Game.Net.Elevation>(b).m_Elevation:float2.zero;
+            return NetworkReferencePolicy.WithinPositionTolerance(math.lengthsq(ea-eb));
+        }
+        private static bool NearReferencePoint(float3 a,float3 b)=>NetworkReferencePolicy.WithinPositionTolerance(math.distancesq(a,b));
         private Entity OriginalNetworkEntity(Entity entity)=>EntityManager.HasComponent<Temp>(entity)&&EntityManager.GetComponentData<Temp>(entity).m_Original!=Entity.Null?EntityManager.GetComponentData<Temp>(entity).m_Original:entity;
         private bool SameNetworkComponent<T>(Entity a,Entity b) where T:unmanaged,IComponentData
         {

@@ -3,6 +3,7 @@ using CopyIt;
 
 int checks=0;
 SlopedItCompatibilityTests.Run();
+MoveItCompatibilityTests.Run();
 // Junction reconstruction may delete generated children, but must preserve independent neighbors.
 bool Scope(int e)=>DeletionScope.Allows(e,x=>x==1,x=>x==3?2:x==5?4:x==6?3:0,x=>x==4,x=>x==2);
 if(!Scope(1)||Scope(2)||!Scope(3)||!Scope(4)||!Scope(5)||!Scope(6)||Scope(7))throw new Exception("deletion junction scope regression");
@@ -24,6 +25,11 @@ Check(!NetworkReferencePolicy.SameConnections(new[]{1,2},new[]{1,3}),"new extern
 Check(!NetworkReferencePolicy.SameConnections(new[]{1,2},new[]{1}),"missing connection blocked");
 Check(!NetworkReferencePolicy.SameConnections(new[]{1,2},new[]{1,1}),"duplicate cannot hide removed connection");
 Check(!NetworkReferencePolicy.SameConnections(new[]{1},new[]{1,2}),"additional copied edge blocked");
+Check(NetworkReferencePolicy.WithinPositionTolerance(0.000025f),"5mm regeneration accepted");
+Check(NetworkReferencePolicy.WithinPositionTolerance(0.0001f),"1cm regeneration accepted");
+Check(!NetworkReferencePolicy.WithinPositionTolerance(0.0004f),"2cm relocation blocked");
+Check(!NetworkReferencePolicy.WithinPositionTolerance(float.NaN),"invalid reference geometry blocked");
+Check(!NetworkReferencePolicy.WithinPositionTolerance(float.PositiveInfinity),"infinite reference geometry blocked");
 // Translate the complete road profile rigidly; destination terrain does not reshape it.
 Near(PlacementMath.Height(0,0,4,false),4,"ground road start 0 to 4");
 Near(PlacementMath.Height(11,0,4,false),15,"ground road end 11 to 15");

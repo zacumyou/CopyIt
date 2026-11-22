@@ -1,4 +1,4 @@
-## 0.6.4 — 게임 1.6.4f1 호환성
+## 0.6.6 — 게임 1.6.4f1 호환성
 현재 게임의 배치·불도저 API를 검토하고 새 Game.dll을 허용했습니다. 이전 검토 빌드 지원과 미검토 빌드 보호 차단은 유지합니다. 자세한 검토 범위는 COMPATIBILITY.md를 참고하세요.
 
 > Published source: **0.6.4**. See [CHANGELOG.md](CHANGELOG.md) for the matching Paradox Mods update.

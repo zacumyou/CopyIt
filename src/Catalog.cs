@@ -90,7 +90,13 @@ internal static readonly Dictionary<string,string> English=new Dictionary<string
 ["CopyIt.Text.39245CBCA7"]="{0} / 32 vertices · Right-click to undo the last point",
 ["CopyIt.Text.894EAEF552"]="{0}{1} highlighted inside the area",
 ["CopyIt.Text.96BC626612"]="Rotation",
-["CopyIt.Text.C4F910C0D1"]="Right-drag"
+["CopyIt.Text.C4F910C0D1"]="Right-drag",
+["CopyIt.MoveIt.Unavailable"]="Could not read the Move It selection. Select the objects in Copy It.",
+["CopyIt.MoveIt.Unsupported"]="The selection includes unsupported items. Select objects or segments instead of nodes or control points.",
+["CopyIt.MoveIt.Limit"]="More than 256 objects selected. Reduce the selection.",
+["CopyIt.UI.TypeList"]="Object types",
+["CopyIt.UI.HeightMode"]="Height mode",
+["CopyIt.UI.ResetRotation"]="Reset rotation"
 };
 internal static readonly Dictionary<string,string> Korean=new Dictionary<string,string> {
 ["CopyIt.Text.00E70F2681"]="삭제 취소",
@@ -180,7 +186,13 @@ internal static readonly Dictionary<string,string> Korean=new Dictionary<string,
 ["CopyIt.Text.39245CBCA7"]="{0} / 32점 · 우클릭 한 점 취소",
 ["CopyIt.Text.894EAEF552"]="{0}영역 안 {1}개 강조",
 ["CopyIt.Text.96BC626612"]="회전",
-["CopyIt.Text.C4F910C0D1"]="우클릭 드래그"
+["CopyIt.Text.C4F910C0D1"]="우클릭 드래그",
+["CopyIt.MoveIt.Unavailable"]="Move It 선택을 읽지 못했습니다. Copy It에서 다시 선택해 주세요.",
+["CopyIt.MoveIt.Unsupported"]="복사할 수 없는 대상이 포함되어 있습니다. 노드·제어점 대신 오브젝트나 구간을 선택해 주세요.",
+["CopyIt.MoveIt.Limit"]="선택이 256개를 넘습니다. 선택 범위를 줄여 주세요.",
+["CopyIt.UI.TypeList"]="선택할 유형",
+["CopyIt.UI.HeightMode"]="높이 기준",
+["CopyIt.UI.ResetRotation"]="회전 초기화"
 };
 internal static IEnumerable<KeyValuePair<string,string>> Entries(bool ko)=>ko?Korean:English;
 }
